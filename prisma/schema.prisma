@@ -1,0 +1,663 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// -----------------------------------------------------------------------------
+// ENUMS
+// -----------------------------------------------------------------------------
+enum Role {
+  USER
+  AUTHOR
+  ADMIN
+}
+
+enum CourseRole {
+  OWNER
+  EDITOR
+  REVIEWER
+}
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+enum DependencyType {
+  REQUIRED    // Сплошная стрелка: строгий пререквизит
+  RECOMMENDED // Пунктирная стрелка: советуем ознакомиться
+}
+
+enum QuestionType {
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  OPEN_TEXT
+  FILL_IN_BLANK
+  MATCHING
+  ORDERING
+  FLASHCARD
+  CODE
+}
+
+enum GradingStrategy {
+  EXACT_MATCH        // Сверка по Question.correctAnswerIndexes
+  REGEX              // Языкозависимо: gradingConfig в переводе
+  CONTAINS_KEYWORDS  // Языкозависимо: gradingConfig в переводе
+  AI_GRADED          // Языкозависимо: rubric в переводе
+  CODE_TESTS         // Тест-кейсы из gradingConfig
+  SELF_ASSESSED      // FLASHCARD: пользователь сам ставит оценку
+}
+
+enum ProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum LearningMode {
+  ROADMAP
+  SPACED
+  HYBRID
+}
+
+enum PricingModel {
+  FREE
+  ONE_TIME
+  SUBSCRIPTION
+  ONE_TIME_OR_SUB
+}
+
+enum PlanType {
+  ALL_ACCESS
+  SPECIFIC_COURSES
+}
+
+enum BillingInterval {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+  LIFETIME
+}
+
+enum AccessSource {
+  FREE
+  PURCHASE
+  SUBSCRIPTION
+  GRANT
+}
+
+enum AccessStatus {
+  ACTIVE
+  EXPIRED  // Истёк expiresAt
+  REVOKED  // Отозван вручную / возврат средств (Payment.status = REFUNDED)
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+// -----------------------------------------------------------------------------
+// 0. СПРАВОЧНИК ЛОКАЛЕЙ
+// -----------------------------------------------------------------------------
+model Locale {
+  code     String  @id // BCP-47: "ru", "en", "kk"
+  name     String  // "Русский", "English"
+  isActive Boolean @default(true)
+
+  courseTranslations   CourseTranslation[]
+  tierTranslations     TierTranslation[]
+  topicTranslations    TopicTranslation[]
+  questionTranslations QuestionTranslation[]
+  tagTranslations      TagTranslation[]
+  planTranslations     PlanTranslation[]
+}
+
+// -----------------------------------------------------------------------------
+// 1. ПОЛЬЗОВАТЕЛИ
+// -----------------------------------------------------------------------------
+model User {
+  id              String    @id @default(cuid())
+  authId          String    @unique
+  email           String    @unique
+  name            String?
+  avatarUrl       String?
+  role            Role      @default(USER)
+  preferredLocale String    @default("ru")
+
+  // Геймификация (RPG / Древо прокачки)
+  xp              Int       @default(0)
+  streakDays      Int       @default(0)
+  lastStudyAt     DateTime?
+
+  isBanned        Boolean   @default(false)
+  deletedAt       DateTime? // Soft delete
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  collaborations  CourseCollaborator[]
+  createdTopics   Topic[]             @relation("TopicCreatedBy")
+  editedTopics    Topic[]             @relation("TopicLastEditedBy")
+  progress        UserProgress[]
+  quizAttempts    UserQuizAttempt[]
+  questionReviews UserQuestionReview[]
+  userLayouts     UserGraphLayout[]
+  enrollments     CourseEnrollment[]
+  subscriptions   Subscription[]
+  payments        Payment[]
+  grantsIssued    CourseEnrollment[]  @relation("EnrollmentGrantedBy")
+
+  @@index([deletedAt])
+}
+
+// -----------------------------------------------------------------------------
+// 2. КУРС / РОАДМАП
+// -----------------------------------------------------------------------------
+model Course {
+  id                   String       @id @default(cuid())
+  slug                 String       @unique
+  coverImage           String?
+  defaultLocale        String       @default("ru")
+  availableLocales     String[]     @default(["ru"])
+
+  learningMode         LearningMode @default(ROADMAP)
+  pricingModel         PricingModel @default(FREE)
+  priceMinor           Int?
+  currency             String?
+
+  isPublished          Boolean      @default(false)
+  isArchived           Boolean      @default(false)
+  publishedTopicsCount Int          @default(0) // Кэш знаменателя прогресса
+
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  translations         CourseTranslation[]
+  collaborators        CourseCollaborator[]
+  tiers                Tier[]
+  topics               Topic[]
+  courseTags           CourseTag[]
+  defaultLayouts       DefaultGraphLayout[]
+  userLayouts          UserGraphLayout[]
+  enrollments          CourseEnrollment[]
+  payments             Payment[]
+  planCourses          PlanCourse[]
+
+  @@index([isPublished, isArchived])
+  @@index([pricingModel])
+}
+
+model CourseTranslation {
+  id          String   @id @default(cuid())
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  locale      String
+  localeRef   Locale   @relation(fields: [locale], references: [code], onDelete: Restrict)
+  title       String
+  tagline     String?
+  description String?  @db.Text
+  updatedAt   DateTime @updatedAt
+
+  @@unique([courseId, locale])
+  @@index([locale])
+}
+
+// -----------------------------------------------------------------------------
+// 3. МУЛЬТИАВТОРСТВО
+// -----------------------------------------------------------------------------
+model CourseCollaborator {
+  id       String     @id @default(cuid())
+  courseId String
+  course   Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     CourseRole @default(EDITOR)
+  addedAt  DateTime   @default(now())
+
+  @@unique([courseId, userId])
+  @@index([userId])
+  @@index([courseId, role])
+}
+
+// -----------------------------------------------------------------------------
+// 4. УРОВНИ / ЭТАПЫ (TIERS)
+// -----------------------------------------------------------------------------
+model Tier {
+  id          String   @id @default(cuid())
+  slug        String
+  badgeColor  String   @default("#10b981")
+  order       Int
+
+  isPublished Boolean  @default(false)
+  isArchived  Boolean  @default(false)
+
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Restrict)
+
+  translations TierTranslation[]
+  topics       Topic[]
+
+  @@unique([courseId, slug])
+  @@unique([courseId, order])
+  @@index([courseId, order])
+}
+
+model TierTranslation {
+  id        String   @id @default(cuid())
+  tierId    String
+  tier      Tier     @relation(fields: [tierId], references: [id], onDelete: Cascade)
+  locale    String
+  localeRef Locale   @relation(fields: [locale], references: [code], onDelete: Restrict)
+  name      String
+
+  @@unique([tierId, locale])
+  @@index([locale])
+}
+
+// -----------------------------------------------------------------------------
+// 5. ТЕМА / УЗЕЛ ГРАФА (TOPIC)
+// -----------------------------------------------------------------------------
+model Topic {
+  id               String     @id @default(cuid())
+  slug             String
+  difficulty       Difficulty @default(BEGINNER)
+  estimatedMinutes Int        @default(15)
+  version          Int        @default(1)
+
+  isPublished      Boolean    @default(false)
+  isArchived       Boolean    @default(false)
+  isFreePreview    Boolean    @default(false)
+
+  courseId         String
+  course           Course     @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  tierId           String
+  tier             Tier       @relation(fields: [tierId], references: [id], onDelete: Restrict)
+
+  createdById      String?
+  createdBy        User?      @relation("TopicCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  lastEditedById   String?
+  lastEditedBy     User?      @relation("TopicLastEditedBy", fields: [lastEditedById], references: [id], onDelete: SetNull)
+
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  prerequisiteOf   TopicPrerequisite[] @relation("RequiredByTopic")
+  prerequisites    TopicPrerequisite[] @relation("DependentTopic")
+
+  translations     TopicTranslation[]
+  topicTags        TopicTag[]
+  questions        Question[]
+  userProgress     UserProgress[]
+  defaultLayouts   DefaultGraphLayout[]
+  userLayouts      UserGraphLayout[]
+
+  @@unique([courseId, slug])
+  @@index([courseId, isPublished, isArchived])
+  @@index([tierId])
+  @@index([createdById])
+  @@index([lastEditedById])
+}
+
+model TopicTranslation {
+  id            String   @id @default(cuid())
+  topicId       String
+  topic         Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  locale        String
+  localeRef     Locale   @relation(fields: [locale], references: [code], onDelete: Restrict)
+
+  title         String
+  subtitle      String?
+  summary       String
+  description   String?  @db.Text
+  keyPoints     String[]
+  pitfalls      String[]
+
+  contentBlocks Json     @default("[]")
+  resources     Json     @default("[]")
+
+  updatedAt     DateTime @updatedAt
+
+  @@unique([topicId, locale])
+  @@index([locale])
+}
+
+// -----------------------------------------------------------------------------
+// 6. СВЯЗИ ГРАФА (EDGES)
+// -----------------------------------------------------------------------------
+model TopicPrerequisite {
+  id             String         @id @default(cuid())
+  topicId        String
+  topic          Topic          @relation("DependentTopic", fields: [topicId], references: [id], onDelete: Cascade)
+  prerequisiteId String
+  prerequisite   Topic          @relation("RequiredByTopic", fields: [prerequisiteId], references: [id], onDelete: Cascade)
+  type           DependencyType @default(REQUIRED)
+  order          Int            @default(0)
+
+  @@unique([topicId, prerequisiteId])
+  @@index([topicId])
+  @@index([prerequisiteId])
+}
+
+// -----------------------------------------------------------------------------
+// 7. СОСТОЯНИЕ ХОЛСТА (UI LAYOUTS)
+// -----------------------------------------------------------------------------
+model DefaultGraphLayout {
+  id        String   @id @default(cuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  topicId   String
+  topic     Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  positionX Float
+  positionY Float
+  updatedAt DateTime @updatedAt
+
+  @@unique([courseId, topicId])
+  @@index([courseId])
+}
+
+model UserGraphLayout {
+  id        String   @id @default(cuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  topicId   String
+  topic     Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  positionX Float
+  positionY Float
+  updatedAt DateTime @updatedAt
+
+  @@unique([courseId, topicId, userId])
+  @@index([courseId, userId])
+}
+
+// -----------------------------------------------------------------------------
+// 8. ВОПРОСЫ И КВИЗЫ
+// -----------------------------------------------------------------------------
+model Question {
+  id                   String          @id @default(cuid())
+  topicId              String
+  topic                Topic           @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  type                 QuestionType    @default(SINGLE_CHOICE)
+  gradingStrategy      GradingStrategy @default(EXACT_MATCH)
+  isArchived           Boolean         @default(false)
+
+  correctAnswerIndexes Int[]
+  correctMatchingPairs Json?
+
+  order                Int             @default(0)
+
+  translations         QuestionTranslation[]
+  attempts             UserQuizAttempt[]
+  reviews              UserQuestionReview[]
+
+  @@index([topicId, order])
+}
+
+model QuestionTranslation {
+  id            String   @id @default(cuid())
+  questionId    String
+  question      Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  locale        String
+  localeRef     Locale   @relation(fields: [locale], references: [code], onDelete: Restrict)
+  prompt        String
+  options       Json?
+  explanation   String?  @db.Text
+  gradingConfig Json?
+
+  updatedAt     DateTime @updatedAt
+
+  @@unique([questionId, locale])
+  @@index([locale])
+}
+
+model UserQuizAttempt {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questionId     String
+  question       Question  @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  selectedAnswer Json
+
+  isCorrect      Boolean?
+  quality        Int?
+
+  gradedAt       DateTime?
+  locale         String?
+  createdAt      DateTime  @default(now())
+
+  @@index([userId, questionId])
+  @@index([questionId])
+  @@index([createdAt])
+}
+
+model UserQuestionReview {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questionId      String
+  question        Question  @relation(fields: [questionId], references: [id], onDelete: Restrict)
+
+  reviewDueAt     DateTime?
+  repetitionCount Int       @default(0)
+  intervalDays    Int       @default(0)
+  easeFactor      Float     @default(2.5)
+  lapseCount      Int       @default(0)
+  lastReviewedAt  DateTime?
+
+  @@unique([userId, questionId])
+  @@index([userId, reviewDueAt])
+}
+
+// -----------------------------------------------------------------------------
+// 9. ПРОГРЕСС ПОЛЬЗОВАТЕЛЯ
+// -----------------------------------------------------------------------------
+model UserProgress {
+  id               String         @id @default(cuid())
+  userId           String
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topicId          String
+  topic            Topic          @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  status           ProgressStatus @default(NOT_STARTED)
+  startedAt        DateTime?
+  completedAt      DateTime?
+  lastViewed       DateTime       @default(now())
+  timeSpentSeconds Int            @default(0)
+  notes            String?        @db.Text
+  completedVersion Int?
+
+  // SM-2 fallback для тем без вопросов
+  reviewDueAt      DateTime?
+  repetitionCount  Int            @default(0)
+  intervalDays     Int            @default(0)
+  easeFactor       Float          @default(2.5)
+  lapseCount       Int            @default(0)
+
+  @@unique([userId, topicId])
+  @@index([userId, status, reviewDueAt])
+  @@index([topicId])
+}
+
+// -----------------------------------------------------------------------------
+// 10. ТАРИФНЫЕ ПЛАНЫ, ДОСТУП И ОПЛАТА
+// -----------------------------------------------------------------------------
+model Plan {
+  id            String          @id @default(cuid())
+  slug          String          @unique
+  type          PlanType        @default(SPECIFIC_COURSES)
+  interval      BillingInterval @default(MONTHLY)
+  priceMinor    Int
+  currency      String          @default("USD")
+  isActive      Boolean         @default(true)
+
+  translations  PlanTranslation[]
+  subscriptions Subscription[]
+  courses       PlanCourse[]
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model PlanTranslation {
+  id          String   @id @default(cuid())
+  planId      String
+  plan        Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  locale      String
+  localeRef   Locale   @relation(fields: [locale], references: [code], onDelete: Restrict)
+  name        String
+  description String?  @db.Text
+
+  @@unique([planId, locale])
+  @@index([locale])
+}
+
+model PlanCourse {
+  id       String @id @default(cuid())
+  planId   String
+  plan     Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, courseId])
+  @@index([courseId])
+}
+
+model CourseEnrollment {
+  id                   String       @id @default(cuid())
+  userId               String
+  user                 User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId             String
+  course               Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  source               AccessSource @default(FREE)
+  status               AccessStatus @default(ACTIVE)
+
+  expiresAt            DateTime?
+  completedTopicsCount Int          @default(0)
+
+  grantedById          String?
+  grantedBy            User?        @relation("EnrollmentGrantedBy", fields: [grantedById], references: [id], onDelete: SetNull)
+  createdAt            DateTime     @default(now())
+
+  payments             Payment[]
+
+  @@unique([userId, courseId])
+  @@index([userId, status])
+  @@index([courseId])
+  @@index([expiresAt])
+  @@index([grantedById])
+}
+
+model Subscription {
+  id                String             @id @default(cuid())
+  userId            String
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId            String
+  plan              Plan               @relation(fields: [planId], references: [id], onDelete: Restrict)
+  status            SubscriptionStatus @default(ACTIVE)
+  currentPeriodEnd  DateTime
+  cancelAtPeriodEnd Boolean            @default(false)
+  provider          String
+  providerRef       String             @unique
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  payments          Payment[]
+
+  @@index([userId, status])
+  @@index([currentPeriodEnd])
+}
+
+model Payment {
+  id             String            @id @default(cuid())
+  userId         String
+  user           User              @relation(fields: [userId], references: [id], onDelete: Restrict)
+  courseId       String?
+  course         Course?           @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  enrollmentId   String?
+  enrollment     CourseEnrollment? @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+  subscriptionId String?
+  subscription   Subscription?     @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  amountMinor    Int
+  currency       String
+  status         PaymentStatus     @default(PENDING)
+
+  refundedMinor  Int?
+  refundedAt     DateTime?
+
+  provider       String
+  providerRef    String            @unique
+
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([userId, status])
+  @@index([courseId])
+  @@index([subscriptionId])
+  @@index([enrollmentId])
+}
+
+// -----------------------------------------------------------------------------
+// 11. ТЕГИ
+// -----------------------------------------------------------------------------
+model Tag {
+  id           String           @id @default(cuid())
+  slug         String           @unique
+  translations TagTranslation[]
+  courses      CourseTag[]
+  topics       TopicTag[]
+}
+
+model TagTranslation {
+  id        String   @id @default(cuid())
+  tagId     String
+  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  locale    String
+  localeRef Locale   @relation(fields: [locale], references: [code], onDelete: Restrict)
+  name      String
+
+  @@unique([tagId, locale])
+  @@index([locale])
+}
+
+model CourseTag {
+  id        String  @id @default(cuid())
+  courseId  String
+  course    Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  tagId     String
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  isPrimary Boolean @default(false)
+  order     Int     @default(0)
+
+  @@unique([courseId, tagId])
+  @@index([tagId])
+}
+
+model TopicTag {
+  id        String  @id @default(cuid())
+  topicId   String
+  topic     Topic   @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  tagId     String
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  isPrimary Boolean @default(false)
+  order     Int     @default(0)
+
+  @@unique([topicId, tagId])
+  @@index([tagId])
+}
