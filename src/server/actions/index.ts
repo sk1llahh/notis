@@ -20,3 +20,9 @@ export {
   type CompleteTopicInput,
   type CompleteTopicOutput,
 } from "./progress-actions";
+
+export {
+  submitQuizAction,
+  submitQuizSchema,
+  type SubmitQuizInput,
+} from "./quiz-actions";

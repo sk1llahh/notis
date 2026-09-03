@@ -2,19 +2,25 @@
 
 import React, { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, ArrowRight, Zap, Trophy } from "lucide-react";
+import { CheckCircle2, ArrowRight, Zap, Trophy, GraduationCap } from "lucide-react";
 import { Button, Card } from "@/shared/ui";
 import { ROUTES } from "@/shared/config";
 import { completeTopicAction } from "@/server/actions";
+import { QuizModal, type QuizQuestionDTO } from "@/modules/quiz";
 import type { TopicDetailsDTO } from "../types";
 
 interface TopicFooterActionProps {
   topic: TopicDetailsDTO;
+  quizQuestions?: QuizQuestionDTO[];
 }
 
-export function TopicFooterAction({ topic }: TopicFooterActionProps) {
+export function TopicFooterAction({
+  topic,
+  quizQuestions = [],
+}: TopicFooterActionProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [isQuizOpen, setIsQuizOpen] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successInfo, setSuccessInfo] = useState<{ xpEarned: number } | null>(
     null
@@ -22,6 +28,7 @@ export function TopicFooterAction({ topic }: TopicFooterActionProps) {
 
   const { courseSlug, slug, progress } = topic;
   const isCompleted = progress.status === "COMPLETED";
+  const hasQuiz = quizQuestions.length > 0;
 
   const handleComplete = () => {
     setErrorMessage(null);
@@ -74,19 +81,31 @@ export function TopicFooterAction({ topic }: TopicFooterActionProps) {
               {successInfo
                 ? "Прогресс зафиксирован. Возвращаемся в роадмап..."
                 : isCompleted
-                ? "Вы можете повторно подтвердить освоение темы для обновления даты повторения."
-                : "После подтверждения тема откроет следующие связанные узлы в роадмапе и начислит 50 XP."}
+                ? "Вы можете повторно подтвердить освоение темы или пройти тест для проверки знаний."
+                : "Пройдите интерактивный тест для закрепления темы или подтвердите освоение материала."}
             </p>
           </div>
 
-          <div className="shrink-0 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+            {hasQuiz && (
+              <Button
+                onClick={() => setIsQuizOpen(true)}
+                variant="secondary"
+                size="lg"
+                className="w-full sm:w-auto"
+                leftIcon={<GraduationCap className="w-5 h-5 text-status-available" />}
+              >
+                Пройти тест ({quizQuestions.length})
+              </Button>
+            )}
+
             <Button
               onClick={handleComplete}
               variant="primary"
               size="lg"
               isLoading={isPending}
               disabled={Boolean(successInfo)}
-              className="w-full sm:w-auto min-w-[200px]"
+              className="w-full sm:w-auto min-w-[180px]"
               rightIcon={<ArrowRight className="w-4 h-4 ml-1" />}
             >
               {successInfo
@@ -104,6 +123,21 @@ export function TopicFooterAction({ topic }: TopicFooterActionProps) {
           </div>
         )}
       </Card>
+
+      {/* Quiz Modal */}
+      {hasQuiz && (
+        <QuizModal
+          isOpen={isQuizOpen}
+          onClose={() => setIsQuizOpen(false)}
+          courseSlug={courseSlug}
+          topicSlug={slug}
+          topicTitle={topic.title}
+          questions={quizQuestions}
+          onSuccess={() => {
+            router.refresh();
+          }}
+        />
+      )}
     </footer>
   );
 }

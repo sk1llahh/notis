@@ -1,5 +1,28 @@
 /**
- * Quiz domain module facade.
- * Manages question grading strategies, user attempts, and practice tests.
+ * Quiz domain module public facade.
+ * Clean boundary: External modules import quiz logic and components ONLY from here.
  */
-export const QUIZ_MODULE_NAME = "quiz" as const;
+
+// Types & DTOs
+export type {
+  QuizQuestionType,
+  QuizOptionDTO,
+  QuizQuestionDTO,
+  QuizSubmissionDTO,
+  QuizQuestionResultDTO,
+  QuizResultDTO,
+} from "./types";
+
+// Services
+export {
+  getQuizForTopic,
+  evaluateQuizSubmission,
+  calculateQuizResult,
+} from "./services/quiz-service";
+
+// UI Components
+export { QuizCard } from "./components/QuizCard";
+export { QuizStepper } from "./components/QuizStepper";
+export { QuizResultView } from "./components/QuizResultView";
+export { QuizContainer } from "./components/QuizContainer";
+export { QuizModal } from "./components/QuizModal";

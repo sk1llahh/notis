@@ -1,4 +1,10 @@
-import { PrismaClient, Difficulty, DependencyType, Role } from "@prisma/client";
+import {
+  PrismaClient,
+  Difficulty,
+  DependencyType,
+  Role,
+  QuestionType,
+} from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -158,6 +164,72 @@ async function main() {
       type: DependencyType.REQUIRED,
     },
   });
+
+  // Seeding Quiz Questions for topicMemory
+  const existingQuestions = await prisma.question.count({
+    where: { topicId: topicMemory.id },
+  });
+
+  if (existingQuestions === 0) {
+    await prisma.question.create({
+      data: {
+        topicId: topicMemory.id,
+        type: QuestionType.SINGLE_CHOICE,
+        order: 1,
+        correctAnswerIndexes: [0],
+        translations: {
+          create: {
+            locale: "ru",
+            prompt:
+              "Где в оперативной памяти размещаются локальные примитивные переменные функции?",
+            options: [
+              { id: "opt-0", text: "На стеке (Stack)" },
+              { id: "opt-1", text: "В динамической куче (Heap)" },
+              { id: "opt-2", text: "В глобальной таблице виртуальных адресов" },
+            ],
+            explanation:
+              "Локальные переменные фиксированного размера размещаются в стековом фрейме вызываемой функции.",
+          },
+        },
+      },
+    });
+
+    await prisma.question.create({
+      data: {
+        topicId: topicMemory.id,
+        type: QuestionType.MULTIPLE_CHOICE,
+        order: 2,
+        correctAnswerIndexes: [0, 2, 3],
+        translations: {
+          create: {
+            locale: "ru",
+            prompt:
+              "Какие утверждения справедливы для динамической памяти (Кучи / Heap)?",
+            options: [
+              {
+                id: "opt-0",
+                text: "Выделение памяти происходит динамически во время выполнения программы",
+              },
+              {
+                id: "opt-1",
+                text: "Память автоматически освобождается сразу при выходе из функции",
+              },
+              {
+                id: "opt-2",
+                text: "Требует явного освобождения или работы сборщика мусора (Garbage Collector)",
+              },
+              {
+                id: "opt-3",
+                text: "Размер выделяемого блока может определяться динамически в runtime",
+              },
+            ],
+            explanation:
+              "Куча предназначена для динамических данных произвольного размера и жизненного цикла, выходящего за пределы одного вызова функции.",
+          },
+        },
+      },
+    });
+  }
 
   console.log("✅ Данные успешно залиты!");
 }
