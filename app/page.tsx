@@ -1,67 +1,85 @@
-import Image from "next/image";
+import Link from "next/link";
+import { Compass, Sparkles, Brain, Shield, ArrowRight } from "lucide-react";
+import { Badge, Button, Card, CardHeader, CardTitle, CardDescription } from "@/shared/ui";
+import { ROUTES } from "@/shared/config";
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
+    <div className="min-h-screen bg-surface-canvas text-text-primary flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      {/* Background subtle glow accents */}
+      <div className="absolute -top-40 -left-40 w-96 h-96 bg-status-available/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-status-completed/10 rounded-full blur-3xl pointer-events-none" />
+
+      <main className="w-full max-w-4xl flex flex-col items-center text-center space-y-10 z-10">
+        {/* Platform Badge */}
+        <Badge variant="default" size="md">
+          <Sparkles className="w-3.5 h-3.5 text-status-available" />
+          <span>Платформа обучения нового поколения</span>
+        </Badge>
+
+        {/* Title */}
+        <div className="space-y-4">
+          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight bg-gradient-to-b from-white via-text-primary to-text-secondary bg-clip-text text-transparent">
+            Notis Knowledge Graphs
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-base sm:text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
+            Интерактивные графы курсов, расчет тумана войны (Fog of War) и
+            интервальные повторения SM-2. Изучайте концепции в строгой логической
+            последовательности.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Action Button */}
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <Link href={ROUTES.COURSE("cs-foundations")}>
+            <Button
+              variant="primary"
+              size="lg"
+              leftIcon={<Compass className="w-5 h-5" />}
+              rightIcon={<ArrowRight className="w-4 h-4 ml-1" />}
+            >
+              Открыть граф «Основы Computer Science»
+            </Button>
+          </Link>
+        </div>
+
+        {/* Features Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full pt-8 text-left">
+          <Card variant="interactive">
+            <CardHeader className="p-0 pb-2">
+              <div className="p-2.5 rounded-sm bg-status-available/10 text-status-available w-fit mb-2">
+                <Shield className="w-5 h-5" />
+              </div>
+              <CardTitle className="text-sm font-bold">Fog of War</CardTitle>
+            </CardHeader>
+            <CardDescription>
+              Продвинутые разделы открываются только после успешного освоения обязательных пререквизитов.
+            </CardDescription>
+          </Card>
+
+          <Card variant="interactive">
+            <CardHeader className="p-0 pb-2">
+              <div className="p-2.5 rounded-sm bg-status-progress/10 text-status-progress w-fit mb-2">
+                <Brain className="w-5 h-5" />
+              </div>
+              <CardTitle className="text-sm font-bold">SM-2 Spaced Repetition</CardTitle>
+            </CardHeader>
+            <CardDescription>
+              Алгоритм интервальных повторений для долговременного закрепления ключевых понятий.
+            </CardDescription>
+          </Card>
+
+          <Card variant="interactive">
+            <CardHeader className="p-0 pb-2">
+              <div className="p-2.5 rounded-sm bg-status-completed/10 text-status-completed w-fit mb-2">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <CardTitle className="text-sm font-bold">RPG Прокачка & XP</CardTitle>
+            </CardHeader>
+            <CardDescription>
+              Отслеживание стриков, прогресса по уровням (Tiers) и версионирование обновлений тем.
+            </CardDescription>
+          </Card>
         </div>
       </main>
     </div>
