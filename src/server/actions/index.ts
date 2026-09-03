@@ -26,3 +26,19 @@ export {
   submitQuizSchema,
   type SubmitQuizInput,
 } from "./quiz-actions";
+
+export {
+  updateNodePositionsAction,
+  updateNodePositionsSchema,
+  type UpdateNodePositionsInput,
+  type UpdateNodePositionsOutput,
+  connectPrerequisiteAction,
+  connectPrerequisiteSchema,
+  type ConnectPrerequisiteInput,
+  type ConnectPrerequisiteOutput,
+  disconnectPrerequisiteAction,
+  disconnectPrerequisiteSchema,
+  type DisconnectPrerequisiteInput,
+  type DisconnectPrerequisiteOutput,
+} from "./studio-actions";
+

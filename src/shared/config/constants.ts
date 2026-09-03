@@ -45,6 +45,7 @@ export const ROUTES = {
   HOME: "/",
   COURSES: "/courses",
   COURSE: (slug: string) => `/courses/${slug}`,
+  STUDIO: (slug: string) => `/studio/${slug}`,
   TOPIC: (courseSlug: string, topicSlug: string) =>
     `/courses/${courseSlug}/topics/${topicSlug}`,
   PRACTICE: "/practice",

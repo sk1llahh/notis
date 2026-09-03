@@ -1,0 +1,351 @@
+"use client";
+
+import React, { useState, useCallback, useTransition } from "react";
+import Link from "next/link";
+import {
+  ReactFlow,
+  ReactFlowProvider,
+  Background,
+  Controls,
+  MiniMap,
+  BackgroundVariant,
+  useNodesState,
+  useEdgesState,
+  addEdge,
+  type Connection,
+  type Node,
+  type Edge,
+  type OnNodeDrag,
+} from "@xyflow/react";
+import { TopicNode, TopicEdge, type TopicNodePayload } from "@/modules/roadmap";
+import {
+  updateNodePositionsAction,
+  connectPrerequisiteAction,
+  disconnectPrerequisiteAction,
+} from "@/server/actions";
+import { Badge, Button } from "@/shared/ui";
+import { ROUTES } from "@/shared/config";
+import {
+  Sparkles,
+  ExternalLink,
+  Check,
+  Loader2,
+  AlertCircle,
+  GitBranch,
+  ArrowRight,
+} from "lucide-react";
+import type { StudioGraphDTO, SyncStatus, ConnectionType } from "../types";
+
+const nodeTypes = {
+  topicNode: TopicNode,
+};
+
+const edgeTypes = {
+  required: TopicEdge,
+  recommended: TopicEdge,
+};
+
+interface StudioCanvasProps {
+  initialData: StudioGraphDTO;
+}
+
+function StudioCanvasInner({ initialData }: StudioCanvasProps) {
+  const { course } = initialData;
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node<TopicNodePayload>>(
+    initialData.nodes as unknown as Node<TopicNodePayload>[]
+  );
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(
+    initialData.edges
+  );
+
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>("IDLE");
+  const [statusMessage, setStatusMessage] = useState<string>("");
+  const [connectionType, setConnectionType] = useState<ConnectionType>("REQUIRED");
+  const [, startTransition] = useTransition();
+
+  // MiniMap node color mapper using design tokens
+  const getMiniMapNodeColor = useCallback((node: Node) => {
+    const payload = node.data as unknown as TopicNodePayload;
+    if (!payload) return "#404659";
+    switch (payload.status) {
+      case "COMPLETED":
+        return "#10b981"; // --color-status-completed
+      case "IN_PROGRESS":
+        return "#f59e0b"; // --color-status-progress
+      case "AVAILABLE":
+        return "#0ea5e9"; // --color-status-available
+      case "LOCKED":
+      default:
+        return "#404659"; // --color-status-locked
+    }
+  }, []);
+
+  // 1. Drag & Drop layout persistence
+  const onNodeDragStop: OnNodeDrag<Node<TopicNodePayload>> = useCallback(
+    (_event, node) => {
+      startTransition(async () => {
+        setSyncStatus("SYNCING");
+        setStatusMessage("Синхронизация...");
+
+        const result = await updateNodePositionsAction({
+          courseSlug: course.slug,
+          positions: {
+            [node.id]: {
+              x: Math.round(node.position.x),
+              y: Math.round(node.position.y),
+            },
+          },
+        });
+
+        if (result.success) {
+          setSyncStatus("SAVED");
+          setStatusMessage("Сохранено");
+          setTimeout(() => {
+            setSyncStatus((cur) => (cur === "SAVED" ? "IDLE" : cur));
+            setStatusMessage("");
+          }, 2000);
+        } else {
+          setSyncStatus("ERROR");
+          setStatusMessage(result.error?.message ?? "Ошибка сохранения");
+        }
+      });
+    },
+    [course.slug]
+  );
+
+  // 2. Cursor connection interceptor (source -> target)
+  const onConnect = useCallback(
+    (connection: Connection) => {
+      if (!connection.source || !connection.target) return;
+      if (connection.source === connection.target) return;
+
+      startTransition(async () => {
+        setSyncStatus("SYNCING");
+        setStatusMessage("Создание связи...");
+
+        // connection.source is the prerequisite, connection.target is the dependent topic
+        const result = await connectPrerequisiteAction({
+          courseSlug: course.slug,
+          topicId: connection.target,
+          prerequisiteId: connection.source,
+          type: connectionType,
+        });
+
+        if (result.success) {
+          const edgeId = `${connection.source}->${connection.target}`;
+          const isReq = connectionType === "REQUIRED";
+          const newEdge: Edge = {
+            id: edgeId,
+            source: connection.source,
+            target: connection.target,
+            type: isReq ? "required" : "recommended",
+            data: {
+              type: isReq ? "required" : "recommended",
+              isUnlocked: true,
+            },
+          };
+
+          setEdges((eds) => addEdge(newEdge, eds));
+          setSyncStatus("SAVED");
+          setStatusMessage("Связь добавлена");
+          setTimeout(() => {
+            setSyncStatus((cur) => (cur === "SAVED" ? "IDLE" : cur));
+            setStatusMessage("");
+          }, 2000);
+        } else {
+          setSyncStatus("ERROR");
+          setStatusMessage(result.error?.message ?? "Не удалось создать связь");
+        }
+      });
+    },
+    [course.slug, connectionType, setEdges]
+  );
+
+  // 3. Edge deletion interceptor
+  const onEdgesDelete = useCallback(
+    (deletedEdges: Edge[]) => {
+      startTransition(async () => {
+        setSyncStatus("SYNCING");
+        setStatusMessage("Удаление связи...");
+
+        let hasError = false;
+        let lastErrorMessage = "";
+
+        for (const edge of deletedEdges) {
+          if (!edge.source || !edge.target) continue;
+          const result = await disconnectPrerequisiteAction({
+            courseSlug: course.slug,
+            topicId: edge.target,
+            prerequisiteId: edge.source,
+          });
+
+          if (!result.success) {
+            hasError = true;
+            lastErrorMessage = result.error?.message ?? "Ошибка удаления";
+          }
+        }
+
+        if (hasError) {
+          setSyncStatus("ERROR");
+          setStatusMessage(lastErrorMessage);
+        } else {
+          setSyncStatus("SAVED");
+          setStatusMessage("Связь удалена");
+          setTimeout(() => {
+            setSyncStatus((cur) => (cur === "SAVED" ? "IDLE" : cur));
+            setStatusMessage("");
+          }, 2000);
+        }
+      });
+    },
+    [course.slug]
+  );
+
+  return (
+    <div className="relative w-full h-[calc(100vh-64px)] bg-surface-canvas overflow-hidden select-none">
+      {/* Top Floating Studio Toolbar */}
+      <div className="absolute top-4 left-4 right-4 sm:right-auto z-10 flex flex-wrap items-center justify-between gap-4 p-3 rounded-lg bg-surface-card/90 border border-border-subtle backdrop-blur-xl shadow-2xl">
+        {/* Left segment: Title & Studio Badge */}
+        <div className="flex items-center gap-2.5">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-bold text-text-primary tracking-tight">
+                {course.title}
+              </h2>
+              <Badge size="sm" variant="available">
+                <Sparkles className="w-3 h-3 mr-1" />
+                Авторская студия
+              </Badge>
+            </div>
+            <p className="text-[11px] text-text-muted mt-0.5">
+              Перетаскивайте темы и соединяйте точки для построения графа
+            </p>
+          </div>
+        </div>
+
+        <div className="h-6 w-px bg-border-subtle hidden md:block" />
+
+        {/* Center segment: Connection Type Selector */}
+        <div className="flex items-center gap-1.5 p-1 rounded-md bg-surface-elevated border border-border-subtle">
+          <span className="text-[11px] font-medium text-text-secondary px-2">
+            Тип связи:
+          </span>
+          <button
+            type="button"
+            onClick={() => setConnectionType("REQUIRED")}
+            className={`px-2.5 py-1 text-xs font-medium rounded-sm transition-all duration-150 flex items-center gap-1 cursor-pointer ${
+              connectionType === "REQUIRED"
+                ? "bg-surface-canvas text-status-available border border-border-strong shadow-sm"
+                : "text-text-muted hover:text-text-secondary"
+            }`}
+          >
+            <ArrowRight className="w-3 h-3" />
+            Строгая
+          </button>
+          <button
+            type="button"
+            onClick={() => setConnectionType("RECOMMENDED")}
+            className={`px-2.5 py-1 text-xs font-medium rounded-sm transition-all duration-150 flex items-center gap-1 cursor-pointer ${
+              connectionType === "RECOMMENDED"
+                ? "bg-surface-canvas text-status-progress border border-border-strong shadow-sm"
+                : "text-text-muted hover:text-text-secondary"
+            }`}
+          >
+            <GitBranch className="w-3 h-3" />
+            Совет
+          </button>
+        </div>
+
+        <div className="h-6 w-px bg-border-subtle hidden md:block" />
+
+        {/* Right segment: Sync status indicator & Student Mode Link */}
+        <div className="flex items-center gap-3">
+          {/* Real-time sync status indicator */}
+          <div className="flex items-center gap-1.5 text-xs font-mono min-w-[110px]">
+            {syncStatus === "SYNCING" && (
+              <span className="flex items-center gap-1.5 text-status-progress">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>{statusMessage || "Синхронизация..."}</span>
+              </span>
+            )}
+            {syncStatus === "SAVED" && (
+              <span className="flex items-center gap-1.5 text-status-completed">
+                <Check className="w-3.5 h-3.5" />
+                <span>{statusMessage || "Сохранено"}</span>
+              </span>
+            )}
+            {syncStatus === "ERROR" && (
+              <span className="flex items-center gap-1.5 text-red-400">
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span className="truncate max-w-[180px]">
+                  {statusMessage || "Ошибка"}
+                </span>
+              </span>
+            )}
+            {syncStatus === "IDLE" && (
+              <span className="text-text-muted text-[11px]">Готово</span>
+            )}
+          </div>
+
+          <Link href={ROUTES.COURSE(course.slug)}>
+            <Button
+              variant="secondary"
+              size="sm"
+              rightIcon={<ExternalLink className="w-3.5 h-3.5" />}
+              title="Перейти к просмотру курса в режиме студента"
+            >
+              Режим студента
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* Interactive React Flow Canvas */}
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onNodeDragStop={onNodeDragStop}
+        onConnect={onConnect}
+        onEdgesDelete={onEdgesDelete}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        nodesDraggable={true}
+        nodesConnectable={true}
+        elementsSelectable={true}
+        fitView
+        fitViewOptions={{ padding: 0.25 }}
+        minZoom={0.2}
+        maxZoom={2}
+        proOptions={{ hideAttribution: true }}
+      >
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={24}
+          size={1.2}
+          color="#1d2230"
+        />
+        <Controls
+          position="bottom-left"
+          className="!bg-surface-card !border-border-subtle !text-text-primary !rounded-md overflow-hidden shadow-2xl"
+        />
+        <MiniMap
+          position="top-right"
+          nodeColor={getMiniMapNodeColor}
+          nodeStrokeWidth={2}
+          maskColor="rgba(8, 9, 13, 0.75)"
+          className="!bg-surface-card !border-border-subtle !rounded-lg overflow-hidden shadow-2xl"
+        />
+      </ReactFlow>
+    </div>
+  );
+}
+
+export function StudioCanvas(props: StudioCanvasProps) {
+  return (
+    <ReactFlowProvider>
+      <StudioCanvasInner {...props} />
+    </ReactFlowProvider>
+  );
+}
