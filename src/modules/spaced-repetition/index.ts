@@ -1,5 +1,21 @@
 /**
- * Spaced Repetition domain module facade.
- * Implements SuperMemo SM-2 algorithm, intervals, ease factor, and due cards queue.
+ * Spaced Repetition Domain Module Facade.
  */
-export const SPACED_REPETITION_MODULE_NAME = "spaced-repetition" as const;
+
+export {
+  calculateSM2,
+  type SM2Input,
+  type SM2Output,
+} from "./services/sm2-algorithm";
+
+export { getDueFlashcards } from "./services/spaced-repetition-service";
+
+export { FlashcardView } from "./components/FlashcardView";
+export { PracticeDeck } from "./components/PracticeDeck";
+
+export type {
+  ReviewCardDTO,
+  CardReviewResultDTO,
+  QualityRating,
+} from "./types";
+

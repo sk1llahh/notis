@@ -42,3 +42,34 @@ export {
   type DisconnectPrerequisiteOutput,
 } from "./studio-actions";
 
+export {
+  updateTopicContentAction,
+  updateTopicContentSchema,
+  type UpdateTopicContentInput,
+  type UpdateTopicContentOutput,
+  upsertQuizQuestionAction,
+  upsertQuizQuestionSchema,
+  type UpsertQuizQuestionInput,
+  type UpsertQuizQuestionOutput,
+  deleteQuizQuestionAction,
+  deleteQuizQuestionSchema,
+  type DeleteQuizQuestionInput,
+  type DeleteQuizQuestionOutput,
+  publishTopicAction,
+  publishTopicSchema,
+  type PublishTopicInput,
+  type PublishTopicOutput,
+  getTopicStudioDetailsAction,
+  getTopicStudioDetailsSchema,
+  type GetTopicStudioDetailsInput,
+} from "./studio-topic-actions";
+
+export {
+  reviewCardAction,
+  reviewCardSchema,
+  type ReviewCardInput,
+  type ReviewCardOutput,
+} from "./spaced-repetition-actions";
+
+
+

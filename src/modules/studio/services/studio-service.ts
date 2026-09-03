@@ -191,3 +191,91 @@ export async function getCourseStudioGraph(
     edges,
   };
 }
+
+/**
+ * Server Service: Fetches full topic and quiz details for the Author Studio.
+ * Includes complete information including correctAnswerIndexes and explanation.
+ */
+export async function getTopicStudioDetails(
+  topicId: string,
+  locale?: string
+): Promise<import("../types").TopicStudioDetailsDTO | null> {
+  const topic = await prisma.topic.findUnique({
+    where: { id: topicId },
+    include: {
+      course: {
+        select: { defaultLocale: true },
+      },
+      translations: true,
+      questions: {
+        where: { isArchived: false },
+        include: {
+          translations: true,
+        },
+        orderBy: { order: "asc" },
+      },
+    },
+  });
+
+  if (!topic) {
+    return null;
+  }
+
+  const defaultLocale = topic.course.defaultLocale;
+  const targetLocale = locale ?? defaultLocale;
+
+  const topicTrans =
+    topic.translations.find((t) => t.locale === targetLocale) ??
+    topic.translations.find((t) => t.locale === defaultLocale) ??
+    topic.translations[0];
+
+  const questions: import("../types").StudioQuizQuestionDTO[] = topic.questions.map((q) => {
+    const qTrans =
+      q.translations.find((t) => t.locale === targetLocale) ??
+      q.translations.find((t) => t.locale === defaultLocale) ??
+      q.translations[0];
+
+    const rawOpts = qTrans?.options;
+    let options: import("../types").StudioQuizOptionDTO[] = [];
+
+    if (Array.isArray(rawOpts)) {
+      options = rawOpts.map((opt) => {
+        if (typeof opt === "object" && opt !== null) {
+          const o = opt as Record<string, unknown>;
+          return {
+            text: typeof o.text === "string" ? o.text : "",
+            codeSnippet: typeof o.codeSnippet === "string" ? o.codeSnippet : undefined,
+          };
+        }
+        return {
+          text: String(opt),
+        };
+      });
+    }
+
+    return {
+      id: q.id,
+      question: qTrans?.prompt ?? "Вопрос без текста",
+      type: q.type === "MULTIPLE_CHOICE" ? "MULTIPLE_CHOICE" : "SINGLE_CHOICE",
+      options,
+      correctIndexes: q.correctAnswerIndexes,
+      explanation: qTrans?.explanation ?? undefined,
+      order: q.order,
+    };
+  });
+
+  return {
+    id: topic.id,
+    slug: topic.slug,
+    difficulty: topic.difficulty,
+    version: topic.version,
+    isPublished: topic.isPublished,
+    isFreePreview: topic.isFreePreview,
+    title: topicTrans?.title ?? topic.slug,
+    summary: topicTrans?.summary ?? "",
+    keyPoints: topicTrans?.keyPoints ?? [],
+    pitfalls: topicTrans?.pitfalls ?? [],
+    questions,
+  };
+}
+

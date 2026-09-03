@@ -3,7 +3,11 @@
  */
 
 export { StudioCanvas } from "./components/studio-canvas";
-export { getCourseStudioGraph } from "./services/studio-service";
+export { StudioTopicDrawer } from "./components/studio-topic-drawer";
+export {
+  getCourseStudioGraph,
+  getTopicStudioDetails,
+} from "./services/studio-service";
 
 export type {
   StudioGraphDTO,
@@ -11,4 +15,8 @@ export type {
   StudioEdge,
   SyncStatus,
   ConnectionType,
+  TopicStudioDetailsDTO,
+  StudioQuizQuestionDTO,
+  StudioQuizOptionDTO,
 } from "./types";
+

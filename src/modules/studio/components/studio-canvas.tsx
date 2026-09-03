@@ -18,6 +18,7 @@ import {
   type OnNodeDrag,
 } from "@xyflow/react";
 import { TopicNode, TopicEdge, type TopicNodePayload } from "@/modules/roadmap";
+import { StudioTopicDrawer } from "./studio-topic-drawer";
 import {
   updateNodePositionsAction,
   connectPrerequisiteAction,
@@ -62,6 +63,48 @@ function StudioCanvasInner({ initialData }: StudioCanvasProps) {
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [connectionType, setConnectionType] = useState<ConnectionType>("REQUIRED");
   const [, startTransition] = useTransition();
+
+  // Drawer state
+  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // Handle node click to open topic editing drawer
+  const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
+    setSelectedTopicId(node.id);
+    setIsDrawerOpen(true);
+  }, []);
+
+  // Handle topic update from drawer to reactively update node state without reload
+  const handleTopicUpdated = useCallback(
+    (updated: {
+      id: string;
+      title: string;
+      difficulty: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "EXPERT";
+      isPublished: boolean;
+      version: number;
+    }) => {
+      setNodes((currentNodes) =>
+        currentNodes.map((n) => {
+          if (n.id === updated.id) {
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                title: updated.title,
+                difficulty: updated.difficulty,
+                progress: {
+                  ...n.data.progress,
+                  currentVersion: updated.version,
+                },
+              },
+            };
+          }
+          return n;
+        })
+      );
+    },
+    [setNodes]
+  );
 
   // MiniMap node color mapper using design tokens
   const getMiniMapNodeColor = useCallback((node: Node) => {
@@ -307,6 +350,7 @@ function StudioCanvasInner({ initialData }: StudioCanvasProps) {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeDragStop={onNodeDragStop}
+        onNodeClick={onNodeClick}
         onConnect={onConnect}
         onEdgesDelete={onEdgesDelete}
         nodeTypes={nodeTypes}
@@ -338,8 +382,18 @@ function StudioCanvasInner({ initialData }: StudioCanvasProps) {
           className="!bg-surface-card !border-border-subtle !rounded-lg overflow-hidden shadow-2xl"
         />
       </ReactFlow>
+
+      {/* Side Topic Editing Drawer */}
+      <StudioTopicDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        courseSlug={course.slug}
+        topicId={selectedTopicId}
+        onTopicUpdated={handleTopicUpdated}
+      />
     </div>
   );
+
 }
 
 export function StudioCanvas(props: StudioCanvasProps) {
