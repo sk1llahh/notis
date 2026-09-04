@@ -191,11 +191,20 @@ export function buildWorkerScript(): string {
   `;
 }
 
+let nodeVmModule: any = null;
+try {
+  if (typeof window === "undefined") {
+    nodeVmModule = eval("require")("node:vm");
+  }
+} catch {
+  nodeVmModule = null;
+}
+
 /**
  * Node.js / SSR execution fallback for unit tests and non-browser environments.
  */
 export function executeCodeNodeFallback(options: ExecuteCodeOptions): ExecutionResult {
-  const { code, testCases = [] } = options;
+  const { code, testCases = [], timeoutMs = DEFAULT_TIMEOUT_MS } = options;
   const logs: string[] = [];
   const startTime = Date.now();
 
@@ -232,8 +241,19 @@ export function executeCodeNodeFallback(options: ExecuteCodeOptions): ExecutionR
       return undefined;
     `;
 
-    const runner = new Function("console", wrapperCode);
-    const targetFunc = runner(customConsole);
+    let targetFunc: any;
+    if (nodeVmModule) {
+      const sandbox = { console: customConsole };
+      const vmScript = `(function(console) {
+        ${wrapperCode}
+      })(console)`;
+      targetFunc = nodeVmModule.runInNewContext(vmScript, sandbox, {
+        timeout: timeoutMs,
+      });
+    } else {
+      const runner = new Function("console", wrapperCode);
+      targetFunc = runner(customConsole);
+    }
 
     const testResults: TestResult[] = [];
     let allTestsPassed = true;
@@ -254,7 +274,17 @@ export function executeCodeNodeFallback(options: ExecuteCodeOptions): ExecutionR
         const tc = testCases[i];
         const testName = tc.name || tc.description || `Тест #${i + 1}`;
         try {
-          const actual = targetFunc(...(tc.input || []));
+          let actual: any;
+          if (nodeVmModule) {
+            actual = nodeVmModule.runInNewContext(
+              "targetFunc(...input)",
+              { targetFunc, input: tc.input || [] },
+              { timeout: timeoutMs }
+            );
+          } else {
+            actual = targetFunc(...(tc.input || []));
+          }
+
           const passed = deepEqual(actual, tc.expected);
           if (!passed) allTestsPassed = false;
           testResults.push({
@@ -265,11 +295,30 @@ export function executeCodeNodeFallback(options: ExecuteCodeOptions): ExecutionR
           });
         } catch (testErr) {
           allTestsPassed = false;
+          const isTimeout =
+            Boolean(
+              testErr &&
+                typeof testErr === "object" &&
+                ((testErr as any).code === "ERR_SCRIPT_EXECUTION_TIMEOUT" ||
+                  String((testErr as any).message || "").includes("timed out"))
+            ) || String(testErr).includes("timed out");
+
+          const timeoutLabel =
+            timeoutMs >= 1000
+              ? `${Math.round(timeoutMs / 1000)} сек`
+              : `${timeoutMs} мс`;
+
+          const errMsg = isTimeout
+            ? `Превышен лимит времени выполнения (${timeoutLabel})`
+            : testErr && typeof testErr === "object" && typeof (testErr as any).message === "string"
+            ? (testErr as any).message
+            : String(testErr);
+
           testResults.push({
             name: testName,
             passed: false,
             expected: tc.expected,
-            error: testErr instanceof Error ? testErr.message : String(testErr),
+            error: errMsg,
           });
         }
       }
@@ -283,11 +332,30 @@ export function executeCodeNodeFallback(options: ExecuteCodeOptions): ExecutionR
       allTestsPassed: testCases.length > 0 ? allTestsPassed : true,
     };
   } catch (err) {
+    const isTimeout =
+      Boolean(
+        err &&
+          typeof err === "object" &&
+          ((err as any).code === "ERR_SCRIPT_EXECUTION_TIMEOUT" ||
+            String((err as any).message || "").includes("timed out"))
+      ) || String(err).includes("timed out");
+
+    const timeoutLabel =
+      timeoutMs >= 1000
+        ? `${Math.round(timeoutMs / 1000)} сек`
+        : `${timeoutMs} мс`;
+
+    const errorMsg = isTimeout
+      ? `Превышен лимит времени выполнения (${timeoutLabel})`
+      : err && typeof err === "object" && typeof (err as any).message === "string"
+      ? (err as any).message
+      : String(err);
+
     return {
       success: false,
       logs,
       executionTimeMs: Date.now() - startTime,
-      error: err instanceof Error ? err.message : String(err),
+      error: errorMsg,
       testResults: [],
       allTestsPassed: false,
     };
