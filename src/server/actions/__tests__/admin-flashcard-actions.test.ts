@@ -1,15 +1,17 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  createFlashcardSchema,
   createFlashcardAction,
-  updateFlashcardSchema,
   updateFlashcardAction,
-  deleteFlashcardSchema,
   deleteFlashcardAction,
-  getTopicFlashcardsSchema,
   getTopicFlashcardsAction,
 } from "../admin-flashcard-actions";
+import {
+  createFlashcardSchema,
+  updateFlashcardSchema,
+  deleteFlashcardSchema,
+  getTopicFlashcardsSchema,
+} from "../admin-flashcard-actions.schemas";
 
 describe("admin-flashcard-actions: Schemas & Validation", () => {
   describe("createFlashcardSchema & Action", () => {

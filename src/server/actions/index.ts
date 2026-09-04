@@ -14,171 +14,204 @@ export type {
   ActionResult,
 } from "./types";
 
+// topic-actions
+export { completeTopicAction } from "./topic-actions";
 export {
-  completeTopicAction,
   completeTopicSchema,
   type CompleteTopicInput,
   type CompleteTopicOutput,
-} from "./topic-actions";
+} from "./topic-actions.schemas";
 
+// quiz-actions
 export {
   submitQuizAction,
+  retakeQuizAction,
+} from "./quiz-actions";
+export {
+  quizAnswerItemSchema,
   submitQuizSchema,
   type SubmitQuizInput,
-  retakeQuizAction,
   retakeQuizSchema,
   type RetakeQuizInput,
-} from "./quiz-actions";
+} from "./quiz-actions.schemas";
 
+// studio-actions
 export {
   updateNodePositionsAction,
+  connectPrerequisiteAction,
+  disconnectPrerequisiteAction,
+} from "./studio-actions";
+export {
   updateNodePositionsSchema,
   type UpdateNodePositionsInput,
   type UpdateNodePositionsOutput,
-  connectPrerequisiteAction,
   connectPrerequisiteSchema,
   type ConnectPrerequisiteInput,
   type ConnectPrerequisiteOutput,
-  disconnectPrerequisiteAction,
   disconnectPrerequisiteSchema,
   type DisconnectPrerequisiteInput,
   type DisconnectPrerequisiteOutput,
-} from "./studio-actions";
+} from "./studio-actions.schemas";
 
+// studio-topic-actions
 export {
   updateTopicContentAction,
+  upsertQuizQuestionAction,
+  deleteQuizQuestionAction,
+  publishTopicAction,
+  getTopicStudioDetailsAction,
+} from "./studio-topic-actions";
+export {
   updateTopicContentSchema,
   type UpdateTopicContentInput,
   type UpdateTopicContentOutput,
-  upsertQuizQuestionAction,
+  quizOptionSchema,
   upsertQuizQuestionSchema,
   type UpsertQuizQuestionInput,
   type UpsertQuizQuestionOutput,
-  deleteQuizQuestionAction,
   deleteQuizQuestionSchema,
   type DeleteQuizQuestionInput,
   type DeleteQuizQuestionOutput,
-  publishTopicAction,
   publishTopicSchema,
   type PublishTopicInput,
   type PublishTopicOutput,
-  getTopicStudioDetailsAction,
   getTopicStudioDetailsSchema,
   type GetTopicStudioDetailsInput,
-} from "./studio-topic-actions";
+} from "./studio-topic-actions.schemas";
 
+// spaced-repetition-actions
+export { reviewCardAction } from "./spaced-repetition-actions";
 export {
-  reviewCardAction,
   reviewCardSchema,
   type ReviewCardInput,
   type ReviewCardOutput,
-} from "./spaced-repetition-actions";
+} from "./spaced-repetition-actions.schemas";
 
+// course-actions
+export { enrollCourseAction } from "./course-actions";
 export {
-  enrollCourseAction,
   enrollCourseSchema,
   type EnrollCourseInput,
   type EnrollCourseOutput,
-} from "./course-actions";
+} from "./course-actions.schemas";
 
+// admin-course-actions
 export {
   createCourseAction,
+  updateCourseSettingsAction,
+  deleteCourseAction,
+} from "./admin-course-actions";
+export {
   createCourseSchema,
   type CreateCourseInput,
   type CreateCourseOutput,
-  updateCourseSettingsAction,
   updateCourseSettingsSchema,
   type UpdateCourseSettingsInput,
   type UpdateCourseSettingsOutput,
-  deleteCourseAction,
   deleteCourseSchema,
   type DeleteCourseInput,
   type DeleteCourseOutput,
-} from "./admin-course-actions";
+} from "./admin-course-actions.schemas";
 
+// studio-topic-lifecycle-actions
 export {
   createTopicAction,
+  deleteTopicAction,
+} from "./studio-topic-lifecycle-actions";
+export {
   createTopicSchema,
   type CreateTopicInput,
   type CreateTopicOutput,
-  deleteTopicAction,
   deleteTopicSchema,
   type DeleteTopicInput,
   type DeleteTopicOutput,
-} from "./studio-topic-lifecycle-actions";
+} from "./studio-topic-lifecycle-actions.schemas";
 
+// auth-actions
+export { registerUserAction } from "./auth-actions";
 export {
-  registerUserAction,
   registerUserSchema,
   type RegisterUserInput,
   type RegisterUserOutput,
-} from "./auth-actions";
+} from "./auth-actions.schemas";
 
+// admin-user-actions
+export { updateUserRoleAction } from "./admin-user-actions";
 export {
-  updateUserRoleAction,
   updateUserRoleSchema,
   type UpdateUserRoleInput,
   type UpdateUserRoleOutput,
-} from "./admin-user-actions";
+} from "./admin-user-actions.schemas";
 
+// user-settings-actions
 export {
   updateProfileNameAction,
+  changePasswordAction,
+  deleteAccountAction,
+} from "./user-settings-actions";
+export {
   updateProfileNameSchema,
   type UpdateProfileNameInput,
   type UpdateProfileNameOutput,
-  changePasswordAction,
   changePasswordSchema,
   type ChangePasswordInput,
   type ChangePasswordOutput,
-  deleteAccountAction,
   deleteAccountSchema,
   type DeleteAccountInput,
   type DeleteAccountOutput,
-} from "./user-settings-actions";
+} from "./user-settings-actions.schemas";
 
+// course-enrollment-actions
 export {
   leaveCourseAction,
+  resetCourseProgressAction,
+} from "./course-enrollment-actions";
+export {
   leaveCourseSchema,
   type LeaveCourseInput,
   type LeaveCourseOutput,
-  resetCourseProgressAction,
   resetCourseProgressSchema,
   type ResetCourseProgressInput,
   type ResetCourseProgressOutput,
-} from "./course-enrollment-actions";
+} from "./course-enrollment-actions.schemas";
 
+// admin-tier-actions
 export {
   createCourseTierAction,
+  updateCourseTierAction,
+  deleteCourseTierAction,
+  assignTopicTierAction,
+  getCourseTiersAction,
+} from "./admin-tier-actions";
+export {
   createCourseTierSchema,
   type CreateCourseTierInput,
-  updateCourseTierAction,
   updateCourseTierSchema,
   type UpdateCourseTierInput,
-  deleteCourseTierAction,
   deleteCourseTierSchema,
   type DeleteCourseTierInput,
-  assignTopicTierAction,
   assignTopicTierSchema,
   type AssignTopicTierInput,
-  getCourseTiersAction,
   getCourseTiersSchema,
   type GetCourseTiersInput,
   type CourseTierDTO,
-} from "./admin-tier-actions";
+} from "./admin-tier-actions.schemas";
 
+// admin-flashcard-actions
 export {
   createFlashcardAction,
+  updateFlashcardAction,
+  deleteFlashcardAction,
+  getTopicFlashcardsAction,
+} from "./admin-flashcard-actions";
+export {
   createFlashcardSchema,
   type CreateFlashcardInput,
-  updateFlashcardAction,
   updateFlashcardSchema,
   type UpdateFlashcardInput,
-  deleteFlashcardAction,
   deleteFlashcardSchema,
   type DeleteFlashcardInput,
-  getTopicFlashcardsAction,
   getTopicFlashcardsSchema,
   type GetTopicFlashcardsInput,
   type FlashcardDTO,
-} from "./admin-flashcard-actions";
-
+} from "./admin-flashcard-actions.schemas";

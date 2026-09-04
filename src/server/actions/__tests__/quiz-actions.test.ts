@@ -1,11 +1,13 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  submitQuizSchema,
   submitQuizAction,
-  retakeQuizSchema,
   retakeQuizAction,
 } from "../quiz-actions";
+import {
+  submitQuizSchema,
+  retakeQuizSchema,
+} from "../quiz-actions.schemas";
 
 describe("submitQuizAction & Schema Validation", () => {
   test("1. submitQuizSchema parses valid submission parameters", () => {

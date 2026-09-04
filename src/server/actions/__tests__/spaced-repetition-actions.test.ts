@@ -1,9 +1,7 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
-import {
-  reviewCardSchema,
-  reviewCardAction,
-} from "../spaced-repetition-actions";
+import { reviewCardAction } from "../spaced-repetition-actions";
+import { reviewCardSchema } from "../spaced-repetition-actions.schemas";
 
 describe("Spaced Repetition Actions: Schemas & Validation", () => {
   test("1. reviewCardSchema parses valid review payloads (qualities 0 to 5)", () => {

@@ -1,28 +1,15 @@
 "use server";
 
-import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/server/db";
 import { GAMIFICATION_RULES } from "@/shared/config";
 import { evaluateQuizSubmission, type QuizResultDTO } from "@/modules/quiz";
 import { enrollTopicIntoReviewQueue } from "@/modules/spaced-repetition/services/spaced-card-service";
 import { createSafeAction, ActionException } from "./safe-action";
-
-export const quizAnswerItemSchema = z.object({
-  questionId: z.string().min(1, "ID вопроса обязателен"),
-  answer: z.unknown(),
-});
-
-export const submitQuizSchema = z.object({
-  courseSlug: z.string().min(1, "Слаг курса обязателен"),
-  topicSlug: z.string().min(1, "Слаг темы обязателен"),
-  answers: z.union([
-    z.array(quizAnswerItemSchema),
-    z.record(z.string(), z.unknown()),
-  ]),
-});
-
-export type SubmitQuizInput = z.infer<typeof submitQuizSchema>;
+import {
+  submitQuizSchema,
+  retakeQuizSchema,
+} from "./quiz-actions.schemas";
 
 /**
  * Server Action: Securely grades a topic quiz on the server,
@@ -217,13 +204,6 @@ export const submitQuizAction = createSafeAction(
     return quizResult;
   }
 );
-
-export const retakeQuizSchema = z.object({
-  courseSlug: z.string().min(1, "Слаг курса обязателен"),
-  topicSlug: z.string().min(1, "Слаг темы обязателен"),
-});
-
-export type RetakeQuizInput = z.infer<typeof retakeQuizSchema>;
 
 /**
  * Server Action: Clears previous quiz attempts for a topic,

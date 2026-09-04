@@ -1,6 +1,7 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { enrollCourseSchema, enrollCourseAction } from "../course-actions";
+import { enrollCourseAction } from "../course-actions";
+import { enrollCourseSchema } from "../course-actions.schemas";
 
 describe("enrollCourseAction & Schema Validation", () => {
   test("1. enrollCourseSchema parses valid courseSlug", () => {

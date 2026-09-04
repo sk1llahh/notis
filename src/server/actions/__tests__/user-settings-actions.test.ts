@@ -1,13 +1,15 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  updateProfileNameSchema,
   updateProfileNameAction,
-  changePasswordSchema,
   changePasswordAction,
-  deleteAccountSchema,
   deleteAccountAction,
 } from "../user-settings-actions";
+import {
+  updateProfileNameSchema,
+  changePasswordSchema,
+  deleteAccountSchema,
+} from "../user-settings-actions.schemas";
 
 describe("user-settings-actions: Schemas & Validation", () => {
   describe("updateProfileNameSchema & Action", () => {

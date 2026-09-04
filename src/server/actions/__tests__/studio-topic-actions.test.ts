@@ -1,13 +1,15 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  updateTopicContentSchema,
   updateTopicContentAction,
-  upsertQuizQuestionSchema,
   upsertQuizQuestionAction,
+} from "../studio-topic-actions";
+import {
+  updateTopicContentSchema,
+  upsertQuizQuestionSchema,
   deleteQuizQuestionSchema,
   publishTopicSchema,
-} from "../studio-topic-actions";
+} from "../studio-topic-actions.schemas";
 
 describe("Studio Topic Actions: Schemas & Validation", () => {
   // ---------------------------------------------------------------------------

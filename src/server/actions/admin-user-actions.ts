@@ -1,40 +1,12 @@
 "use server";
 
-import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/server/db";
 import { createSafeAction, ActionException } from "./safe-action";
-
-// =============================================================================
-// SCHEMAS & TYPES
-// =============================================================================
-
-export const updateUserRoleSchema = z
-  .object({
-    targetUserId: z.string().min(1, "Идентификатор пользователя обязателен"),
-    newRole: z
-      .enum(["USER", "AUTHOR", "ADMIN"], {
-        message: "Недопустимая роль пользователя",
-      })
-      .optional(),
-    isBanned: z.boolean().optional(),
-  })
-  .refine(
-    (data) => data.newRole !== undefined || data.isBanned !== undefined,
-    {
-      message: "Необходимо указать новую роль или статус блокировки",
-      path: ["newRole"],
-    }
-  );
-
-export type UpdateUserRoleInput = z.infer<typeof updateUserRoleSchema>;
-
-export interface UpdateUserRoleOutput {
-  success: boolean;
-  userId: string;
-  updatedRole: "USER" | "AUTHOR" | "ADMIN";
-  isBanned: boolean;
-}
+import {
+  updateUserRoleSchema,
+  type UpdateUserRoleOutput,
+} from "./admin-user-actions.schemas";
 
 // =============================================================================
 // ACTIONS

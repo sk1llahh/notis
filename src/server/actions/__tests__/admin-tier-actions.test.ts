@@ -1,17 +1,19 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  createCourseTierSchema,
   createCourseTierAction,
-  updateCourseTierSchema,
   updateCourseTierAction,
-  deleteCourseTierSchema,
   deleteCourseTierAction,
-  assignTopicTierSchema,
   assignTopicTierAction,
-  getCourseTiersSchema,
   getCourseTiersAction,
 } from "../admin-tier-actions";
+import {
+  createCourseTierSchema,
+  updateCourseTierSchema,
+  deleteCourseTierSchema,
+  assignTopicTierSchema,
+  getCourseTiersSchema,
+} from "../admin-tier-actions.schemas";
 
 describe("admin-tier-actions: Schemas & Validation", () => {
   describe("createCourseTierSchema & Action", () => {

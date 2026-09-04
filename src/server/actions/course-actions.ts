@@ -1,21 +1,12 @@
 "use server";
 
-import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/server/db";
 import { createSafeAction, ActionException } from "./safe-action";
-
-export const enrollCourseSchema = z.object({
-  courseSlug: z.string().min(1, "Слаг курса обязателен"),
-});
-
-export type EnrollCourseInput = z.infer<typeof enrollCourseSchema>;
-
-export interface EnrollCourseOutput {
-  courseId: string;
-  courseSlug: string;
-  enrolled: boolean;
-}
+import {
+  enrollCourseSchema,
+  type EnrollCourseOutput,
+} from "./course-actions.schemas";
 
 /**
  * Server Action: Enrolls the authenticated user into a published course.

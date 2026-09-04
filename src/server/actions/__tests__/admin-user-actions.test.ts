@@ -1,9 +1,7 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
-import {
-  updateUserRoleSchema,
-  updateUserRoleAction,
-} from "../admin-user-actions";
+import { updateUserRoleAction } from "../admin-user-actions";
+import { updateUserRoleSchema } from "../admin-user-actions.schemas";
 
 describe("admin-user-actions: Schema Validation & Execution", () => {
   describe("updateUserRoleSchema", () => {

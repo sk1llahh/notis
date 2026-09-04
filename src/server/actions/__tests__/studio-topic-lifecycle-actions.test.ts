@@ -1,11 +1,13 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  createTopicSchema,
-  deleteTopicSchema,
   createTopicAction,
   deleteTopicAction,
 } from "../studio-topic-lifecycle-actions";
+import {
+  createTopicSchema,
+  deleteTopicSchema,
+} from "../studio-topic-lifecycle-actions.schemas";
 import { slugify } from "@/shared/lib/utils";
 
 describe("studio-topic-lifecycle-actions: Schema Validation & Execution", () => {

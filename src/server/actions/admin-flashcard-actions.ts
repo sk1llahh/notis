@@ -1,54 +1,16 @@
 "use server";
 
-import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/server/db";
 import { assertCourseAuthor } from "@/server/auth";
 import { createSafeAction, ActionException } from "./safe-action";
-
-// =============================================================================
-// SCHEMAS & TYPES
-// =============================================================================
-
-export const createFlashcardSchema = z.object({
-  courseSlug: z.string().min(1, "Слаг курса обязателен"),
-  topicId: z.string().min(1, "ID темы обязателен"),
-  front: z.string().trim().min(3, "Вопрос должен содержать от 3 символов"),
-  back: z.string().trim().min(3, "Ответ должен содержать от 3 символов"),
-});
-
-export type CreateFlashcardInput = z.infer<typeof createFlashcardSchema>;
-
-export const updateFlashcardSchema = z.object({
-  courseSlug: z.string().min(1, "Слаг курса обязателен"),
-  questionId: z.string().min(1, "ID карточки обязателен"),
-  front: z.string().trim().min(3, "Вопрос должен содержать от 3 символов"),
-  back: z.string().trim().min(3, "Ответ должен содержать от 3 символов"),
-});
-
-export type UpdateFlashcardInput = z.infer<typeof updateFlashcardSchema>;
-
-export const deleteFlashcardSchema = z.object({
-  courseSlug: z.string().min(1, "Слаг курса обязателен"),
-  questionId: z.string().min(1, "ID карточки обязателен"),
-});
-
-export type DeleteFlashcardInput = z.infer<typeof deleteFlashcardSchema>;
-
-export const getTopicFlashcardsSchema = z.object({
-  courseSlug: z.string().min(1, "Слаг курса обязателен"),
-  topicId: z.string().min(1, "ID темы обязателен"),
-});
-
-export type GetTopicFlashcardsInput = z.infer<typeof getTopicFlashcardsSchema>;
-
-export interface FlashcardDTO {
-  id: string;
-  topicId: string;
-  front: string;
-  back: string;
-  order: number;
-}
+import {
+  createFlashcardSchema,
+  updateFlashcardSchema,
+  deleteFlashcardSchema,
+  getTopicFlashcardsSchema,
+  type FlashcardDTO,
+} from "./admin-flashcard-actions.schemas";
 
 // =============================================================================
 // SERVER ACTIONS

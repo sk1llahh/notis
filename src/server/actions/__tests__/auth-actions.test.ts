@@ -1,6 +1,7 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { registerUserSchema, registerUserAction } from "../auth-actions";
+import { registerUserAction } from "../auth-actions";
+import { registerUserSchema } from "../auth-actions.schemas";
 
 describe("auth-actions: Schema Validation & Execution", () => {
   test("1. registerUserSchema parses valid registration payload", () => {

@@ -1,11 +1,13 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  leaveCourseSchema,
   leaveCourseAction,
-  resetCourseProgressSchema,
   resetCourseProgressAction,
 } from "../course-enrollment-actions";
+import {
+  leaveCourseSchema,
+  resetCourseProgressSchema,
+} from "../course-enrollment-actions.schemas";
 
 describe("course-enrollment-actions: Schemas & Validation", () => {
   describe("leaveCourseSchema & Action", () => {

@@ -1,13 +1,15 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  createCourseSchema,
   createCourseAction,
-  updateCourseSettingsSchema,
   updateCourseSettingsAction,
-  deleteCourseSchema,
   deleteCourseAction,
 } from "../admin-course-actions";
+import {
+  createCourseSchema,
+  updateCourseSettingsSchema,
+  deleteCourseSchema,
+} from "../admin-course-actions.schemas";
 
 describe("admin-course-actions: Schema Validation & Execution", () => {
   test("1. createCourseSchema parses valid payload", () => {

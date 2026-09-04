@@ -1,6 +1,7 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { completeTopicSchema, completeTopicAction } from "../progress-actions";
+import { completeTopicAction } from "../progress-actions";
+import { completeTopicSchema } from "../progress-actions.schemas";
 
 describe("completeTopicAction & Schema Validation", () => {
   test("1. completeTopicSchema parses valid courseSlug and topicSlug", () => {

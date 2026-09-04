@@ -1,26 +1,15 @@
 "use server";
 
-import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/server/db";
 import { GAMIFICATION_RULES } from "@/shared/config";
 import { calculateStreakStatus } from "@/modules/gamification/services/streak-calculator";
 import { enrollTopicIntoReviewQueue } from "@/modules/spaced-repetition/services/spaced-card-service";
 import { createSafeAction, ActionException } from "./safe-action";
-
-export const completeTopicSchema = z.object({
-  courseSlug: z.string().min(1, "Слаг курса обязателен"),
-  topicSlug: z.string().min(1, "Слаг темы обязателен"),
-});
-
-export type CompleteTopicInput = z.infer<typeof completeTopicSchema>;
-
-export interface CompleteTopicOutput {
-  success: boolean;
-  topicId: string;
-  status: "COMPLETED";
-  xpEarned: number;
-}
+import {
+  completeTopicSchema,
+  type CompleteTopicOutput,
+} from "./topic-actions.schemas";
 
 /**
  * Server Action: Marks a topic as completed by the current user ("Mark as Read").

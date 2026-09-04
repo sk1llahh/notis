@@ -1,13 +1,15 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  updateNodePositionsSchema,
   updateNodePositionsAction,
-  connectPrerequisiteSchema,
   connectPrerequisiteAction,
-  disconnectPrerequisiteSchema,
   disconnectPrerequisiteAction,
 } from "../studio-actions";
+import {
+  updateNodePositionsSchema,
+  connectPrerequisiteSchema,
+  disconnectPrerequisiteSchema,
+} from "../studio-actions.schemas";
 
 describe("Studio Actions: Schemas & Validation", () => {
   // ---------------------------------------------------------------------------
