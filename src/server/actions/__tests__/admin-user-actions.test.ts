@@ -84,6 +84,48 @@ describe("admin-user-actions: Schema Validation & Execution", () => {
         assert.ok(parsed.error.flatten().fieldErrors.newRole);
       }
     });
+
+    test("6.1. updateUserRoleSchema parses valid payload with isBanned only", () => {
+      const valid = {
+        targetUserId: "user_123",
+        isBanned: true,
+      };
+      const parsed = updateUserRoleSchema.safeParse(valid);
+
+      assert.equal(parsed.success, true);
+      if (parsed.success) {
+        assert.equal(parsed.data.targetUserId, "user_123");
+        assert.equal(parsed.data.isBanned, true);
+        assert.equal(parsed.data.newRole, undefined);
+      }
+    });
+
+    test("6.2. updateUserRoleSchema parses valid payload with both newRole and isBanned", () => {
+      const valid = {
+        targetUserId: "user_123",
+        newRole: "AUTHOR",
+        isBanned: false,
+      };
+      const parsed = updateUserRoleSchema.safeParse(valid);
+
+      assert.equal(parsed.success, true);
+      if (parsed.success) {
+        assert.equal(parsed.data.newRole, "AUTHOR");
+        assert.equal(parsed.data.isBanned, false);
+      }
+    });
+
+    test("6.3. updateUserRoleSchema rejects payload when neither newRole nor isBanned is provided", () => {
+      const invalid = {
+        targetUserId: "user_123",
+      };
+      const parsed = updateUserRoleSchema.safeParse(invalid);
+
+      assert.equal(parsed.success, false);
+      if (!parsed.success) {
+        assert.ok(parsed.error.flatten().fieldErrors.newRole);
+      }
+    });
   });
 
   describe("updateUserRoleAction", () => {
@@ -112,6 +154,22 @@ describe("admin-user-actions: Schema Validation & Execution", () => {
         assert.match(
           result.error.message,
           /Нельзя изменить роль собственной учетной записи/
+        );
+      }
+    });
+
+    test("9. updateUserRoleAction protects against self-ban (targetUserId matches session caller)", async () => {
+      const result = await updateUserRoleAction({
+        targetUserId: "seed_admin_1",
+        isBanned: true,
+      });
+
+      assert.equal(result.success, false);
+      if (!result.success) {
+        assert.equal(result.error.code, "BAD_REQUEST");
+        assert.match(
+          result.error.message,
+          /Нельзя заблокировать собственную учетную запись/
         );
       }
     });

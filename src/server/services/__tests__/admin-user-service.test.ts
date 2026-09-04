@@ -12,6 +12,7 @@ describe("Admin User Service: getAdminUsersList", () => {
       name: "Алексей Иванов",
       email: "alex@notis.dev",
       role: "ADMIN",
+      isBanned: false,
       image: "https://example.com/avatar1.jpg",
       createdAt: new Date("2026-01-15T10:00:00Z"),
       passwordHash: "super_secret_hash_1",
@@ -25,6 +26,7 @@ describe("Admin User Service: getAdminUsersList", () => {
       name: "Екатерина Смирнова",
       email: "kate@notis.dev",
       role: "AUTHOR",
+      isBanned: true,
       image: null,
       createdAt: new Date("2026-02-01T12:00:00Z"),
       passwordHash: "super_secret_hash_2",
@@ -38,6 +40,7 @@ describe("Admin User Service: getAdminUsersList", () => {
       name: "Иван Студентов",
       email: "ivan@notis.dev",
       role: "USER",
+      isBanned: false,
       image: null,
       createdAt: new Date("2026-02-20T14:00:00Z"),
       passwordHash: "super_secret_hash_3",
@@ -75,9 +78,13 @@ describe("Admin User Service: getAdminUsersList", () => {
     assert.equal(first.name, "Алексей Иванов");
     assert.equal(first.email, "alex@notis.dev");
     assert.equal(first.role, "ADMIN");
+    assert.equal(first.isBanned, false);
     assert.equal(first.enrollmentsCount, 5);
     assert.equal(first.coursesCount, 3);
     assert.equal((first as unknown as Record<string, unknown>).passwordHash, undefined);
+
+    // Second user is banned check
+    assert.equal(users[1].isBanned, true);
   });
 
   test("2. Correctly sets query search filters (case-insensitive contains on email and name)", async () => {

@@ -39,42 +39,26 @@ export const authConfig: NextAuthConfig = {
         const { email, password } = parsed.data;
         const normalizedEmail = email.toLowerCase().trim();
 
-        // 1. Find user by email or authId
-        let user = await prisma.user.findFirst({
-          where: {
-            OR: [
-              { email: normalizedEmail },
-              { authId: normalizedEmail },
-            ],
-          },
+        // 1. Find user by email
+        const user = await prisma.user.findUnique({
+          where: { email: normalizedEmail },
         });
 
-        // 2. Validate password if user exists
-        if (user) {
-          if (user.passwordHash) {
-            const isMatch = await bcrypt.compare(password, user.passwordHash);
-            if (!isMatch) {
-              return null;
-            }
-          } else {
-            // Automatically set passwordHash for pre-seeded users without password
-            const newHash = await bcrypt.hash(password, 10);
-            await prisma.user.update({
-              where: { id: user.id },
-              data: { passwordHash: newHash },
-            });
-          }
-        } else {
-          // 3. Auto-provision student user in demo / local testing environment
-          const newHash = await bcrypt.hash(password, 10);
-          user = await prisma.user.create({
-            data: {
-              email: normalizedEmail,
-              name: normalizedEmail.split("@")[0],
-              role: "USER",
-              passwordHash: newHash,
-            },
-          });
+        // 2. Reject if user does not exist or password hash is absent
+        if (!user || !user.passwordHash) {
+          return null;
+        }
+
+        // 3. Reject if user is banned
+        if (user.isBanned) {
+          console.warn(`[AUTH] Login blocked: user is banned (${normalizedEmail})`);
+          return null;
+        }
+
+        // 4. Validate password
+        const isMatch = await bcrypt.compare(password, user.passwordHash);
+        if (!isMatch) {
+          return null;
         }
 
         const role: UserRole =
@@ -111,17 +95,53 @@ export const authConfig: NextAuthConfig = {
       : []),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
         token.role = (user as { role?: UserRole }).role ?? "STUDENT";
       }
+
+      if (trigger === "update" && session) {
+        if (session.role) {
+          token.role = session.role as UserRole;
+        }
+        if (session.name) {
+          token.name = session.name;
+        }
+      }
+
+      // Fresh role & ban status check from database
+      const userId = (token.id ?? token.sub) as string | undefined;
+      if (userId) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { role: true, isBanned: true, deletedAt: true },
+          });
+
+          if (dbUser) {
+            if (dbUser.isBanned || dbUser.deletedAt) {
+              return null;
+            }
+            token.role =
+              dbUser.role === "ADMIN"
+                ? "ADMIN"
+                : dbUser.role === "AUTHOR"
+                ? "AUTHOR"
+                : "STUDENT";
+          }
+        } catch {
+          // Fallback if DB query fails in disconnected test environments
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
-        if (token.id) {
-          session.user.id = token.id as string;
+        const userId = (token.id ?? token.sub) as string | undefined;
+        if (userId) {
+          session.user.id = userId;
         }
         if (token.role) {
           (session.user as { role?: UserRole }).role = token.role as UserRole;

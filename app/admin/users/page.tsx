@@ -4,6 +4,7 @@ import { getAuthSession } from "@/server/auth";
 import { getAdminUsersList } from "@/server/services/admin-user-service";
 import { AdminUsersFilter } from "./AdminUsersFilter";
 import { UserRoleSelect } from "./UserRoleSelect";
+import { UserStatusActions } from "./UserStatusActions";
 import { Badge } from "@/shared/ui";
 import {
   ShieldCheck,
@@ -115,6 +116,7 @@ export default async function AdminUsersPage({
                   <tr className="border-b border-border-subtle bg-surface-elevated/50 text-[11px] font-semibold text-text-muted uppercase tracking-wider">
                     <th className="py-3 px-4 sm:px-6">Пользователь</th>
                     <th className="py-3 px-4">Системная роль</th>
+                    <th className="py-3 px-4 text-center">Статус и доступ</th>
                     <th className="py-3 px-4 text-center">Создано курсов</th>
                     <th className="py-3 px-4 text-center">Зачислений</th>
                     <th className="py-3 px-4 sm:px-6 text-right">Дата регистрации</th>
@@ -164,6 +166,15 @@ export default async function AdminUsersPage({
                           <UserRoleSelect
                             userId={user.id}
                             currentRole={user.role}
+                            isCurrentUser={isSelf}
+                          />
+                        </td>
+
+                        {/* Status and Access (Ban/Unban) */}
+                        <td className="py-3 px-4 text-center align-middle">
+                          <UserStatusActions
+                            userId={user.id}
+                            initialIsBanned={user.isBanned}
                             isCurrentUser={isSelf}
                           />
                         </td>

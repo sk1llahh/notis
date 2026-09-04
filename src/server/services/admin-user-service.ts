@@ -8,6 +8,7 @@ export interface AdminUserDTO {
   name: string | null;
   email: string;
   role: "USER" | "AUTHOR" | "ADMIN";
+  isBanned: boolean;
   image: string | null;
   createdAt: Date;
   enrollmentsCount: number;
@@ -68,6 +69,7 @@ export async function getAdminUsersList(
       name: true,
       email: true,
       role: true,
+      isBanned: true,
       image: true,
       createdAt: true,
       _count: {
@@ -85,6 +87,7 @@ export async function getAdminUsersList(
     name: u.name,
     email: u.email,
     role: u.role as "USER" | "AUTHOR" | "ADMIN",
+    isBanned: u.isBanned,
     image: u.image,
     createdAt: u.createdAt,
     enrollmentsCount: u._count.enrollments,

@@ -9,12 +9,23 @@ import { createSafeAction, ActionException } from "./safe-action";
 // SCHEMAS & TYPES
 // =============================================================================
 
-export const updateUserRoleSchema = z.object({
-  targetUserId: z.string().min(1, "Идентификатор пользователя обязателен"),
-  newRole: z.enum(["USER", "AUTHOR", "ADMIN"], {
-    message: "Недопустимая роль пользователя",
-  }),
-});
+export const updateUserRoleSchema = z
+  .object({
+    targetUserId: z.string().min(1, "Идентификатор пользователя обязателен"),
+    newRole: z
+      .enum(["USER", "AUTHOR", "ADMIN"], {
+        message: "Недопустимая роль пользователя",
+      })
+      .optional(),
+    isBanned: z.boolean().optional(),
+  })
+  .refine(
+    (data) => data.newRole !== undefined || data.isBanned !== undefined,
+    {
+      message: "Необходимо указать новую роль или статус блокировки",
+      path: ["newRole"],
+    }
+  );
 
 export type UpdateUserRoleInput = z.infer<typeof updateUserRoleSchema>;
 
@@ -22,6 +33,7 @@ export interface UpdateUserRoleOutput {
   success: boolean;
   userId: string;
   updatedRole: "USER" | "AUTHOR" | "ADMIN";
+  isBanned: boolean;
 }
 
 // =============================================================================
@@ -29,8 +41,8 @@ export interface UpdateUserRoleOutput {
 // =============================================================================
 
 /**
- * Updates a target user's system role (USER, AUTHOR, ADMIN).
- * Protected by strict ADMIN RBAC and self-demotion prevention guard.
+ * Updates a target user's system role (USER, AUTHOR, ADMIN) and/or ban status.
+ * Protected by strict ADMIN RBAC, self-demotion, and self-ban prevention guards.
  */
 export const updateUserRoleAction = createSafeAction(
   updateUserRoleSchema,
@@ -46,43 +58,63 @@ export const updateUserRoleAction = createSafeAction(
       throw new ActionException("FORBIDDEN", "Требуются права администратора");
     }
 
-    // 3. Self-demotion guard: cannot modify caller's own role
-    if (input.targetUserId === userId) {
+    // 3. Self-modification guard: cannot demote or ban caller's own account
+    const isSelfDirect = input.targetUserId === userId;
+    let isSelfCanonical = false;
+    if (!isSelfDirect) {
+      const caller = await prisma.user.findFirst({
+        where: {
+          OR: [{ id: userId }, { authId: userId }],
+        },
+        select: { id: true },
+      });
+      if (caller && caller.id === input.targetUserId) {
+        isSelfCanonical = true;
+      }
+    }
+    const isSelf = isSelfDirect || isSelfCanonical;
+
+    if (isSelf && input.newRole !== undefined) {
       throw new ActionException(
         "BAD_REQUEST",
         "Нельзя изменить роль собственной учетной записи"
       );
     }
 
-    // Also check canonical DB id in case session uses authId
-    const caller = await prisma.user.findFirst({
-      where: {
-        OR: [{ id: userId }, { authId: userId }],
-      },
-      select: { id: true },
-    });
-
-    if (caller && caller.id === input.targetUserId) {
+    if (isSelf && input.isBanned !== undefined) {
       throw new ActionException(
         "BAD_REQUEST",
-        "Нельзя изменить роль собственной учетной записи"
+        "Нельзя заблокировать собственную учетную запись"
       );
     }
 
     // 4. Verify target user exists
     const targetUser = await prisma.user.findUnique({
       where: { id: input.targetUserId },
-      select: { id: true },
+      select: { id: true, role: true, isBanned: true },
     });
 
     if (!targetUser) {
       throw new ActionException("NOT_FOUND", "Пользователь не найден");
     }
 
-    // 5. Update user role in Prisma
-    await prisma.user.update({
+    // 5. Update user role and/or ban status in Prisma
+    const dataToUpdate: { role?: "USER" | "AUTHOR" | "ADMIN"; isBanned?: boolean } = {};
+    if (input.newRole) {
+      dataToUpdate.role = input.newRole;
+    }
+    if (input.isBanned !== undefined) {
+      dataToUpdate.isBanned = input.isBanned;
+    }
+
+    const updatedUser = await prisma.user.update({
       where: { id: input.targetUserId },
-      data: { role: input.newRole },
+      data: dataToUpdate,
+      select: {
+        id: true,
+        role: true,
+        isBanned: true,
+      },
     });
 
     // 6. Cache revalidation
@@ -90,8 +122,9 @@ export const updateUserRoleAction = createSafeAction(
 
     return {
       success: true,
-      userId: input.targetUserId,
-      updatedRole: input.newRole,
+      userId: updatedUser.id,
+      updatedRole: updatedUser.role as "USER" | "AUTHOR" | "ADMIN",
+      isBanned: updatedUser.isBanned,
     };
   }
 );
