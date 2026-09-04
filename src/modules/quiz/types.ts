@@ -4,7 +4,8 @@ export type QuizQuestionType =
   | "SINGLE_CHOICE"
   | "MULTIPLE_CHOICE"
   | "SHORT_ANSWER"
-  | "CODE";
+  | "CODE"
+  | "FLASHCARD";
 
 export interface QuizOptionDTO {
   id: string;

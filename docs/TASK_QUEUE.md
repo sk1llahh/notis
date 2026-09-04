@@ -2,14 +2,14 @@
 
 > **Статус документа**: Single Source of Truth для бэклога и задач  
 > **Последнее обновление**: Сентябрь 2026  
-> **Базовое состояние проекта**: 185 тестов пройдено (100% green), сборка валидна  
+> **Базовое состояние проекта**: 246 тестов пройдено (100% green), сборка валидна  
 
 ---
 
 > [!IMPORTANT]
 > **ПРАВИЛО ДЛЯ ВСЕХ АГЕНТОВ**:  
 > Перед взятием любой задачи из этой очереди агент **ОБЯЗАН** прочитать [`docs/ARCHITECTURE_RULES.md`](./ARCHITECTURE_RULES.md).  
-> Любая работа принимается только при выполнении `pnpm validate` (Typecheck + 185+ тестов + Build).
+> Любая работа принимается только при выполнении `pnpm validate` (Typecheck + 246+ тестов + Build).
 
 ---
 
@@ -44,12 +44,20 @@
 - [x] **Spaced Repetition SM-2 Core**:
   - Математическая формула пересчета $EF$, интервалов $I$ и сброса при $q < 3$.
   - 36-часовой льготный период стрика активности.
+- [x] **Полиморфный Quiz Engine (Strategy/Registry)**:
+  - Формальная структура `strategies/` с per-type модулями (SINGLE_CHOICE, MULTIPLE_CHOICE, SHORT_ANSWER, CODE, FLASHCARD).
+  - Интерфейс `QuestionStrategy` с контрактом: configSchema + answerSchema + validateAnswer + evaluate.
+  - Map-based `QuestionStrategyRegistry` с поддержкой legacy типов (OPEN_TEXT → SHORT_ANSWER).
+  - Registry-driven `QuestionInputFactory` (замена switch/case).
+  - Zod-схемы конфигурации и ответа для каждого из 5 типов.
+  - FlashcardStrategy (самооценка SM-2, quality ≥ 3 = correct) + FlashcardInput UI.
+  - 39 новых тестов (evaluators + registry + Zod-схемы). Итого: 246 тестов.
 
 ---
 
 ## 2. Актуальный бэклог задач (Backlog)
 
-### [ ] Задача 1: Полиморфный Quiz Engine (Стратегии SINGLE_CHOICE, MULTIPLE_CHOICE, SHORT_ANSWER, CODE, FLASHCARD)
+### [x] Задача 1: Полиморфный Quiz Engine (Стратегии SINGLE_CHOICE, MULTIPLE_CHOICE, SHORT_ANSWER, CODE, FLASHCARD)
 - **Цель**: Устранить хардкод типов вопросов, перевести движок квизов на гибкий полиморфный паттерн Strategy / Registry.
 - **Требования архитектуры**:
   - Никаких разрозненных `if (type === ...)` в сервисах оценки и UI-компонентах.
@@ -60,16 +68,16 @@
     3. Клиентский Input-компонент в фабрике рендеринга `QuizStepper`.
     4. Редактор вопроса в шторке Студии (`/studio/[slug]`).
 - **Критерии приемки (DoD)**:
-  - [ ] Реализованы и зарегистрированы стратегии:
+  - [x] Реализованы и зарегистрированы стратегии:
     - `SINGLE_CHOICE`
     - `MULTIPLE_CHOICE`
     - `SHORT_ANSWER` (точный ввод / нормализация регистра и пробелов)
     - `CODE` (контракт кода и тест-кейсов)
     - `FLASHCARD` (самооценка / рендеринг карточки)
-  - [ ] Серверный `evaluateQuizSubmission` использует полиморфные Evaluator'ы.
-  - [ ] DTO для клиента не содержит правильных ответов (`correctAnswerIndexes`, эталонных строк, скрытых тестов).
-  - [ ] Написаны исчерпывающие юнит-тесты на каждую стратегию и реестр.
-  - [ ] `pnpm validate` проходит без регрессий (185+ тестов зеленые).
+  - [x] Серверный `evaluateQuizSubmission` использует полиморфные Evaluator'ы.
+  - [x] DTO для клиента не содержит правильных ответов (`correctAnswerIndexes`, эталонных строк, скрытых тестов).
+  - [x] Написаны исчерпывающие юнит-тесты на каждую стратегию и реестр.
+  - [x] `pnpm validate` проходит без регрессий (246 тестов зеленые).
 
 ---
 
