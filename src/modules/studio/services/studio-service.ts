@@ -185,6 +185,8 @@ export async function getCourseStudioGraph(
       id: courseRecord.id,
       slug: courseRecord.slug,
       title: courseTrans.title ?? courseRecord.slug,
+      description: courseTrans.description ?? undefined,
+      isPublished: courseRecord.isPublished,
       learningMode: courseRecord.learningMode,
     },
     nodes,

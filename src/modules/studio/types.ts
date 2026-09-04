@@ -9,6 +9,8 @@ export interface StudioGraphDTO {
     id: string;
     slug: string;
     title: string;
+    description?: string;
+    isPublished?: boolean;
     learningMode: string;
   };
   nodes: StudioNode[];

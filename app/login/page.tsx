@@ -14,6 +14,7 @@ interface LoginPageProps {
   searchParams: Promise<{
     callbackUrl?: string;
     error?: string;
+    registered?: string;
   }>;
 }
 
@@ -30,7 +31,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <main className="w-full min-h-screen bg-surface-canvas text-text-primary flex flex-col items-center justify-center p-4 sm:p-6">
-      <LoginForm callbackUrl={callbackUrl} initialError={params.error} />
+      <LoginForm
+        callbackUrl={callbackUrl}
+        initialError={params.error}
+        registered={params.registered === "true"}
+      />
     </main>
   );
 }

@@ -3,6 +3,10 @@ import assert from "node:assert/strict";
 import {
   createCourseSchema,
   createCourseAction,
+  updateCourseSettingsSchema,
+  updateCourseSettingsAction,
+  deleteCourseSchema,
+  deleteCourseAction,
 } from "../admin-course-actions";
 
 describe("admin-course-actions: Schema Validation & Execution", () => {
@@ -99,5 +103,83 @@ describe("admin-course-actions: Schema Validation & Execution", () => {
       assert.ok(result.error.fieldErrors?.slug);
       assert.ok(result.error.fieldErrors?.description);
     }
+  });
+
+  describe("updateCourseSettingsSchema & Action", () => {
+    test("7. updateCourseSettingsSchema parses valid settings payload", () => {
+      const valid = {
+        courseSlug: "distributed-systems",
+        title: "Распределенные системы v2",
+        description: "Обновленный курс с практическими задачами на Raft",
+        isPublished: true,
+      };
+      const parsed = updateCourseSettingsSchema.safeParse(valid);
+
+      assert.equal(parsed.success, true);
+      if (parsed.success) {
+        assert.equal(parsed.data.title, valid.title);
+        assert.equal(parsed.data.isPublished, true);
+      }
+    });
+
+    test("8. updateCourseSettingsSchema rejects short title or description", () => {
+      const invalid = {
+        courseSlug: "cs",
+        title: "CS",
+        description: "short",
+        isPublished: false,
+      };
+      const parsed = updateCourseSettingsSchema.safeParse(invalid);
+
+      assert.equal(parsed.success, false);
+      if (!parsed.success) {
+        assert.ok(parsed.error.flatten().fieldErrors.title);
+        assert.ok(parsed.error.flatten().fieldErrors.description);
+      }
+    });
+
+    test("9. updateCourseSettingsAction returns BAD_REQUEST on invalid payload", async () => {
+      const result = await updateCourseSettingsAction({
+        courseSlug: "",
+        title: "",
+        description: "",
+        isPublished: false,
+      });
+
+      assert.equal(result.success, false);
+      if (!result.success) {
+        assert.equal(result.error.code, "BAD_REQUEST");
+      }
+    });
+  });
+
+  describe("deleteCourseSchema & Action", () => {
+    test("10. deleteCourseSchema parses valid payload", () => {
+      const valid = { courseSlug: "distributed-systems" };
+      const parsed = deleteCourseSchema.safeParse(valid);
+
+      assert.equal(parsed.success, true);
+      if (parsed.success) {
+        assert.equal(parsed.data.courseSlug, "distributed-systems");
+      }
+    });
+
+    test("11. deleteCourseSchema rejects empty courseSlug", () => {
+      const invalid = { courseSlug: "" };
+      const parsed = deleteCourseSchema.safeParse(invalid);
+
+      assert.equal(parsed.success, false);
+    });
+
+    test("12. deleteCourseAction returns BAD_REQUEST on empty courseSlug", async () => {
+      const result = await deleteCourseAction({
+        courseSlug: "",
+      });
+
+      assert.equal(result.success, false);
+      if (!result.success) {
+        assert.equal(result.error.code, "BAD_REQUEST");
+      }
+    });
   });
 });

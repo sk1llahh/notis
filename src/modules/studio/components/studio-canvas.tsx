@@ -20,6 +20,7 @@ import {
 } from "@xyflow/react";
 import { TopicNode, TopicEdge, type TopicNodePayload, type TopicDifficulty } from "@/modules/roadmap";
 import { StudioTopicDrawer } from "./studio-topic-drawer";
+import { CourseSettingsModal } from "./CourseSettingsModal";
 import {
   updateNodePositionsAction,
   connectPrerequisiteAction,
@@ -38,6 +39,7 @@ import {
   ArrowRight,
   Plus,
   X,
+  Settings,
 } from "lucide-react";
 import type { StudioGraphDTO, SyncStatus, ConnectionType } from "../types";
 
@@ -73,6 +75,12 @@ function StudioCanvasInner({ initialData }: StudioCanvasProps) {
   // Drawer state
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // Course settings state
+  const [courseTitle, setCourseTitle] = useState(course.title);
+  const [courseDescription, setCourseDescription] = useState(course.description ?? "");
+  const [coursePublished, setCoursePublished] = useState(course.isPublished ?? false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
   // New topic modal state
   const [isNewTopicModalOpen, setIsNewTopicModalOpen] = useState(false);
@@ -371,11 +379,20 @@ function StudioCanvasInner({ initialData }: StudioCanvasProps) {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-bold text-text-primary tracking-tight">
-                {course.title}
+                {courseTitle}
               </h2>
               <Badge size="sm" variant="available">
                 <Sparkles className="w-3 h-3 mr-1" />
                 Авторская студия
+              </Badge>
+              <Badge
+                size="sm"
+                variant={coursePublished ? "completed" : "locked"}
+                className="cursor-pointer"
+                onClick={() => setIsSettingsModalOpen(true)}
+                title="Нажмите для настройки публикации"
+              >
+                {coursePublished ? "Опубликован" : "Черновик курса"}
               </Badge>
             </div>
             <p className="text-[11px] text-text-muted mt-0.5">
@@ -459,6 +476,16 @@ function StudioCanvasInner({ initialData }: StudioCanvasProps) {
             }}
           >
             Новая тема
+          </Button>
+
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<Settings className="w-3.5 h-3.5" />}
+            onClick={() => setIsSettingsModalOpen(true)}
+            title="Настройки курса"
+          >
+            Настройки
           </Button>
 
           <Link href={ROUTES.COURSE(course.slug)}>
@@ -603,6 +630,23 @@ function StudioCanvasInner({ initialData }: StudioCanvasProps) {
         topicId={selectedTopicId}
         onTopicUpdated={handleTopicUpdated}
         onTopicDeleted={handleTopicDeleted}
+      />
+
+      {/* Course Settings Modal */}
+      <CourseSettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        course={{
+          ...course,
+          title: courseTitle,
+          description: courseDescription,
+          isPublished: coursePublished,
+        }}
+        onCourseUpdated={({ title, description, isPublished }) => {
+          setCourseTitle(title);
+          setCourseDescription(description);
+          setCoursePublished(isPublished);
+        }}
       />
     </div>
   );

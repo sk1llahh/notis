@@ -23,14 +23,20 @@ import {
   Shield,
   User,
   ArrowLeft,
+  CheckCircle2,
 } from "lucide-react";
 
 interface LoginFormProps {
   callbackUrl?: string;
   initialError?: string;
+  registered?: boolean;
 }
 
-export function LoginForm({ callbackUrl, initialError }: LoginFormProps) {
+export function LoginForm({
+  callbackUrl,
+  initialError,
+  registered,
+}: LoginFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -143,6 +149,14 @@ export function LoginForm({ callbackUrl, initialError }: LoginFormProps) {
               </button>
             </div>
           </div>
+
+          {/* Success / Registered Alert */}
+          {registered && (
+            <div className="flex items-center gap-2 p-3 rounded-md bg-status-completed/10 border border-status-completed/30 text-status-completed text-xs font-medium">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>Регистрация завершена! Войдите в аккаунт с вашим паролем.</span>
+            </div>
+          )}
 
           {/* Error Alert */}
           {errorMessage && (
@@ -263,6 +277,17 @@ export function LoginForm({ callbackUrl, initialError }: LoginFormProps) {
             >
               Войти через Google
             </Button>
+          </div>
+
+          {/* Switch to Register */}
+          <div className="pt-2 text-center text-xs text-text-muted">
+            Нет аккаунта?{" "}
+            <Link
+              href={ROUTES.REGISTER}
+              className="text-status-available hover:underline font-medium"
+            >
+              Зарегистрироваться
+            </Link>
           </div>
         </CardContent>
 

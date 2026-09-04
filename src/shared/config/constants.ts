@@ -51,4 +51,5 @@ export const ROUTES = {
   PRACTICE: "/practice",
   PROFILE: "/profile",
   LOGIN: "/login",
+  REGISTER: "/register",
 } as const;

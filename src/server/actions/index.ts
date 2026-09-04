@@ -83,6 +83,14 @@ export {
   createCourseSchema,
   type CreateCourseInput,
   type CreateCourseOutput,
+  updateCourseSettingsAction,
+  updateCourseSettingsSchema,
+  type UpdateCourseSettingsInput,
+  type UpdateCourseSettingsOutput,
+  deleteCourseAction,
+  deleteCourseSchema,
+  type DeleteCourseInput,
+  type DeleteCourseOutput,
 } from "./admin-course-actions";
 
 export {
@@ -95,3 +103,10 @@ export {
   type DeleteTopicInput,
   type DeleteTopicOutput,
 } from "./studio-topic-lifecycle-actions";
+
+export {
+  registerUserAction,
+  registerUserSchema,
+  type RegisterUserInput,
+  type RegisterUserOutput,
+} from "./auth-actions";
