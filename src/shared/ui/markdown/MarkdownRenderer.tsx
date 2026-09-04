@@ -3,8 +3,11 @@
 import React, { useState, createContext, useContext } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
 import rehypeHighlight from "rehype-highlight";
+import rehypeKatex from "rehype-katex";
 import { Check, Copy } from "lucide-react";
+import { MermaidDiagram } from "./MermaidDiagram";
 
 export interface MarkdownRendererProps {
   content: string;
@@ -49,6 +52,10 @@ function PreBlock({ children }: PreBlockProps) {
     if (match) {
       language = match[1];
     }
+  }
+
+  if (language.toLowerCase() === "mermaid") {
+    return <MermaidDiagram chart={text} />;
   }
 
   const handleCopy = async () => {
@@ -107,8 +114,11 @@ export function MarkdownRenderer({
   return (
     <div className={`prose-notis text-text-primary ${className}`}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeHighlight]}
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[
+          [rehypeKatex, { throwOnError: false, errorColor: "#ec4899" }],
+          rehypeHighlight,
+        ]}
         components={{
           a: ({ href, children }) => (
             <a
@@ -226,3 +236,5 @@ export function MarkdownRenderer({
     </div>
   );
 }
+
+export { MermaidDiagram, type MermaidDiagramProps } from "./MermaidDiagram";
