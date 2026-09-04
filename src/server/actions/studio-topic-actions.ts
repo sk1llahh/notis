@@ -18,6 +18,9 @@ export const updateTopicContentSchema = z.object({
   topicId: z.string().min(1, "ID темы обязателен"),
   title: z.string().min(2, "Заголовок должен содержать не менее 2 символов"),
   summary: z.string().default(""),
+  description: z.string().optional(),
+  isFreePreview: z.boolean().default(false),
+  estimatedMinutes: z.number().int().min(1, "Минимум 1 минута").max(300, "Максимум 300 минут").default(15),
   difficulty: z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED", "EXPERT"]),
   keyPoints: z.array(z.string()).default([]),
   pitfalls: z.array(z.string()).default([]),
@@ -29,6 +32,8 @@ export interface UpdateTopicContentOutput {
   topicId: string;
   title: string;
   difficulty: string;
+  isFreePreview?: boolean;
+  estimatedMinutes?: number;
 }
 
 export const quizOptionSchema = z.object({
@@ -182,6 +187,8 @@ export const updateTopicContentAction = createSafeAction(
       where: { id: input.topicId },
       data: {
         difficulty: input.difficulty,
+        isFreePreview: input.isFreePreview,
+        estimatedMinutes: input.estimatedMinutes,
         translations: {
           upsert: {
             where: {
@@ -194,12 +201,14 @@ export const updateTopicContentAction = createSafeAction(
               locale,
               title: input.title,
               summary: input.summary,
+              description: input.description ?? null,
               keyPoints: cleanedKeyPoints,
               pitfalls: cleanedPitfalls,
             },
             update: {
               title: input.title,
               summary: input.summary,
+              description: input.description ?? null,
               keyPoints: cleanedKeyPoints,
               pitfalls: cleanedPitfalls,
             },
@@ -211,11 +220,14 @@ export const updateTopicContentAction = createSafeAction(
     // 4. Cache revalidation
     revalidatePath(`/courses/${input.courseSlug}`);
     revalidatePath(`/studio/${input.courseSlug}`);
+    revalidatePath(`/courses/${input.courseSlug}/topics/${topic.slug}`);
 
     return {
       topicId: input.topicId,
       title: input.title,
       difficulty: input.difficulty,
+      isFreePreview: input.isFreePreview,
+      estimatedMinutes: input.estimatedMinutes,
     };
   }
 );

@@ -13,7 +13,7 @@ describe("Studio Topic Actions: Schemas & Validation", () => {
   // ---------------------------------------------------------------------------
   // 1. updateTopicContentSchema
   // ---------------------------------------------------------------------------
-  test("1. updateTopicContentSchema parses valid topic content", () => {
+  test("1. updateTopicContentSchema parses valid topic content with default isFreePreview and estimatedMinutes", () => {
     const valid = {
       courseSlug: "cs-foundations",
       topicId: "topic-1",
@@ -30,6 +30,63 @@ describe("Studio Topic Actions: Schemas & Validation", () => {
       assert.equal(parsed.data.title, "Архитектура памяти");
       assert.equal(parsed.data.difficulty, "BEGINNER");
       assert.equal(parsed.data.keyPoints.length, 2);
+      assert.equal(parsed.data.isFreePreview, false);
+      assert.equal(parsed.data.estimatedMinutes, 15);
+      assert.equal(parsed.data.description, undefined);
+    }
+  });
+
+  test("1.1. updateTopicContentSchema parses full article description, custom isFreePreview and estimatedMinutes", () => {
+    const validFull = {
+      courseSlug: "cs-foundations",
+      topicId: "topic-1",
+      title: "Архитектура памяти",
+      summary: "Краткий обзор стек vs куча",
+      description: "## Устройство памяти\n\nПамять делится на **стек** и **кучу**.\n\n```c\nint x = 42;\n```",
+      isFreePreview: true,
+      estimatedMinutes: 45,
+      difficulty: "ADVANCED",
+      keyPoints: ["Стек быстрый", "Куча динамическая"],
+      pitfalls: ["Утечка памяти"],
+    };
+
+    const parsed = updateTopicContentSchema.safeParse(validFull);
+    assert.equal(parsed.success, true);
+    if (parsed.success) {
+      assert.equal(parsed.data.isFreePreview, true);
+      assert.equal(parsed.data.estimatedMinutes, 45);
+      assert.ok(parsed.data.description?.includes("## Устройство памяти"));
+    }
+  });
+
+  test("1.2. updateTopicContentSchema rejects invalid estimatedMinutes (< 1 or > 300 or non-integer)", () => {
+    const base = {
+      courseSlug: "cs-foundations",
+      topicId: "topic-1",
+      title: "Архитектура памяти",
+      summary: "Описание",
+      difficulty: "BEGINNER",
+    };
+
+    // Less than 1
+    const resLow = updateTopicContentSchema.safeParse({ ...base, estimatedMinutes: 0 });
+    assert.equal(resLow.success, false);
+    if (!resLow.success) {
+      assert.ok(resLow.error.flatten().fieldErrors.estimatedMinutes);
+    }
+
+    // Greater than 300
+    const resHigh = updateTopicContentSchema.safeParse({ ...base, estimatedMinutes: 301 });
+    assert.equal(resHigh.success, false);
+    if (!resHigh.success) {
+      assert.ok(resHigh.error.flatten().fieldErrors.estimatedMinutes);
+    }
+
+    // Floating point
+    const resFloat = updateTopicContentSchema.safeParse({ ...base, estimatedMinutes: 12.5 });
+    assert.equal(resFloat.success, false);
+    if (!resFloat.success) {
+      assert.ok(resFloat.error.flatten().fieldErrors.estimatedMinutes);
     }
   });
 

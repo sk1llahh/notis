@@ -55,9 +55,11 @@ export interface TopicStudioDetailsDTO {
   version: number;
   isPublished: boolean;
   isFreePreview: boolean;
+  estimatedMinutes: number;
   tierId?: string;
   title: string;
   summary: string;
+  description?: string;
   keyPoints: string[];
   pitfalls: string[];
   questions: StudioQuizQuestionDTO[];

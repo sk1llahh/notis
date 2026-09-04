@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useTransition } from "react";
+import React, { useState, useEffect, useTransition, useRef, useMemo } from "react";
 import { Drawer, Card, CardHeader, CardTitle, CardContent, Button, Badge, MarkdownRenderer } from "@/shared/ui";
 import {
   getTopicStudioDetailsAction,
@@ -29,6 +29,13 @@ import {
   Globe,
   EyeOff,
   BrainCircuit,
+  Clock,
+  Bold,
+  Italic,
+  Heading,
+  Code,
+  Quote,
+  List,
 } from "lucide-react";
 import { StudioFlashcardsTab } from "./StudioFlashcardsTab";
 import type { TopicStudioDetailsDTO, StudioQuizQuestionDTO } from "../types";
@@ -51,6 +58,7 @@ export interface StudioTopicDrawerProps {
     title: string;
     difficulty: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "EXPERT";
     isPublished: boolean;
+    isFreePreview?: boolean;
     version: number;
     tier?: {
       id: string;
@@ -83,6 +91,10 @@ export function StudioTopicDrawer({
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [summaryMode, setSummaryMode] = useState<"edit" | "preview">("edit");
+  const [description, setDescription] = useState("");
+  const [descriptionMode, setDescriptionMode] = useState<"edit" | "preview">("edit");
+  const [isFreePreview, setIsFreePreview] = useState(false);
+  const [estimatedMinutes, setEstimatedMinutes] = useState(15);
   const [difficulty, setDifficulty] = useState<
     "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "EXPERT"
   >("BEGINNER");
@@ -90,6 +102,8 @@ export function StudioTopicDrawer({
   const [pitfalls, setPitfalls] = useState<string[]>([]);
   const [contentStatus, setContentStatus] = useState<string | null>(null);
   const [isSavingContent, startSavingContent] = useTransition();
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Quiz editing state
   const [questions, setQuestions] = useState<StudioQuizQuestionDTO[]>([]);
@@ -146,6 +160,9 @@ export function StudioTopicDrawer({
           setTopicDetails(d);
           setTitle(d.title);
           setSummary(d.summary);
+          setDescription(d.description ?? "");
+          setIsFreePreview(Boolean(d.isFreePreview));
+          setEstimatedMinutes(d.estimatedMinutes ?? 15);
           setDifficulty(d.difficulty);
           setKeyPoints(d.keyPoints.length > 0 ? d.keyPoints : [""]);
           setPitfalls(d.pitfalls.length > 0 ? d.pitfalls : [""]);
@@ -179,6 +196,148 @@ export function StudioTopicDrawer({
     };
   }, [isOpen, topicId, courseSlug]);
 
+  // Dirty state checking
+  const isContentDirty = useMemo(() => {
+    if (!topicDetails) return false;
+    const initialDesc = topicDetails.description ?? "";
+    const initialIsFree = Boolean(topicDetails.isFreePreview);
+    const initialEstMin = topicDetails.estimatedMinutes ?? 15;
+    const initialTier = topicDetails.tierId ?? "";
+    const initialTitle = topicDetails.title ?? "";
+    const initialSummary = topicDetails.summary ?? "";
+    const initialDiff = topicDetails.difficulty ?? "BEGINNER";
+
+    const cleanKp = keyPoints.filter((p) => p.trim() !== "");
+    const initKp = (topicDetails.keyPoints ?? []).filter((p) => p.trim() !== "");
+    const kpChanged =
+      cleanKp.length !== initKp.length ||
+      cleanKp.some((p, i) => p !== initKp[i]);
+
+    const cleanPf = pitfalls.filter((p) => p.trim() !== "");
+    const initPf = (topicDetails.pitfalls ?? []).filter((p) => p.trim() !== "");
+    const pfChanged =
+      cleanPf.length !== initPf.length ||
+      cleanPf.some((p, i) => p !== initPf[i]);
+
+    return (
+      title !== initialTitle ||
+      summary !== initialSummary ||
+      description !== initialDesc ||
+      difficulty !== initialDiff ||
+      isFreePreview !== initialIsFree ||
+      estimatedMinutes !== initialEstMin ||
+      selectedTierId !== initialTier ||
+      kpChanged ||
+      pfChanged
+    );
+  }, [
+    topicDetails,
+    title,
+    summary,
+    description,
+    difficulty,
+    isFreePreview,
+    estimatedMinutes,
+    selectedTierId,
+    keyPoints,
+    pitfalls,
+  ]);
+
+  // Helper: insert markdown syntax into description textarea
+  const insertMarkdown = (
+    syntax: "heading" | "bold" | "italic" | "code" | "codeblock" | "quote" | "list"
+  ) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = description.substring(start, end);
+    let replacement = "";
+    let newCursorStart = start;
+    let newCursorEnd = end;
+
+    switch (syntax) {
+      case "heading":
+        replacement = selected ? `\n## ${selected}\n` : `\n## Заголовок\n`;
+        newCursorStart = start + 4;
+        newCursorEnd = newCursorStart + (selected ? selected.length : 9);
+        break;
+      case "bold":
+        replacement = selected ? `**${selected}**` : `**жирный текст**`;
+        newCursorStart = start + 2;
+        newCursorEnd = newCursorStart + (selected ? selected.length : 12);
+        break;
+      case "italic":
+        replacement = selected ? `*${selected}*` : `*курсив*`;
+        newCursorStart = start + 1;
+        newCursorEnd = newCursorStart + (selected ? selected.length : 6);
+        break;
+      case "code":
+        replacement = selected ? `\`${selected}\`` : `\`код\``;
+        newCursorStart = start + 1;
+        newCursorEnd = newCursorStart + (selected ? selected.length : 3);
+        break;
+      case "codeblock":
+        replacement = selected
+          ? `\n\`\`\`ts\n${selected}\n\`\`\`\n`
+          : `\n\`\`\`ts\n// пример кода\nconsole.log("Hello, Notis!");\n\`\`\`\n`;
+        newCursorStart = start + 7;
+        newCursorEnd = newCursorStart + (selected ? selected.length : 45);
+        break;
+      case "quote":
+        replacement = selected ? `\n> ${selected}\n` : `\n> Цитата\n`;
+        newCursorStart = start + 3;
+        newCursorEnd = newCursorStart + (selected ? selected.length : 6);
+        break;
+      case "list":
+        replacement = selected ? `\n- ${selected}\n` : `\n- Пункт списка\n`;
+        newCursorStart = start + 3;
+        newCursorEnd = newCursorStart + (selected ? selected.length : 12);
+        break;
+    }
+
+    const nextValue =
+      description.substring(0, start) + replacement + description.substring(end);
+    setDescription(nextValue);
+
+    requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(newCursorStart, newCursorEnd);
+    });
+  };
+
+  const handleEditorKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+      e.preventDefault();
+      insertMarkdown("bold");
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "i") {
+      e.preventDefault();
+      insertMarkdown("italic");
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "e") {
+      e.preventDefault();
+      insertMarkdown("code");
+      return;
+    }
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const nextValue =
+        description.substring(0, start) + "  " + description.substring(end);
+      setDescription(nextValue);
+      requestAnimationFrame(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + 2, start + 2);
+      });
+    }
+  };
+
   // Handler: Save content
   const handleSaveContent = () => {
     if (!topicId) return;
@@ -190,6 +349,9 @@ export function StudioTopicDrawer({
         topicId,
         title,
         summary,
+        description,
+        isFreePreview,
+        estimatedMinutes,
         difficulty,
         keyPoints: keyPoints.filter((p) => p.trim() !== ""),
         pitfalls: pitfalls.filter((p) => p.trim() !== ""),
@@ -235,12 +397,26 @@ export function StudioTopicDrawer({
           }
         }
 
+        setTopicDetails({
+          ...topicDetails!,
+          title,
+          summary,
+          description,
+          difficulty,
+          isFreePreview,
+          estimatedMinutes,
+          tierId: selectedTierId,
+          keyPoints: keyPoints.filter((p) => p.trim() !== ""),
+          pitfalls: pitfalls.filter((p) => p.trim() !== ""),
+        });
+
         setContentStatus("Сохранено");
         onTopicUpdated?.({
           id: topicId,
           title,
           difficulty,
           isPublished,
+          isFreePreview,
           version,
           tier: tierPayload,
         });
@@ -493,7 +669,7 @@ export function StudioTopicDrawer({
       onClose={onClose}
       title={topicDetails?.title ?? "Редактирование темы"}
       description={`Настройка контента, квизов и публикации (${courseSlug})`}
-      className="max-w-lg"
+      className="max-w-2xl sm:max-w-2xl"
     >
       {/* Loading state */}
       {isLoadingDetails && (
@@ -585,6 +761,91 @@ export function StudioTopicDrawer({
                 />
               </div>
 
+              {/* Topic Settings: Free Preview & Estimated Reading Time */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-semibold text-text-secondary mb-1">
+                    Время на освоение (минут) *
+                  </label>
+                  <div className="relative">
+                    <Clock className="w-3.5 h-3.5 text-text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="number"
+                      min={1}
+                      max={300}
+                      value={estimatedMinutes}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        setEstimatedMinutes(isNaN(val) ? 1 : Math.max(1, Math.min(300, val)));
+                      }}
+                      placeholder="15"
+                      className="w-full bg-surface-canvas border border-border-subtle rounded-md pl-8 pr-3 py-2 text-text-primary text-xs focus:outline-none focus:border-border-focus font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col justify-end">
+                  <label className="flex items-start gap-2.5 p-2 rounded-md border border-border-subtle bg-surface-canvas hover:bg-surface-elevated/40 cursor-pointer transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={isFreePreview}
+                      onChange={(e) => setIsFreePreview(e.target.checked)}
+                      className="mt-0.5 rounded border-border-subtle text-status-available focus:ring-status-available cursor-pointer"
+                    />
+                    <div className="min-w-0">
+                      <span className="font-semibold text-text-primary text-[11px] block leading-tight">
+                        Демо-доступ (Free Preview)
+                      </span>
+                      <span className="text-[10px] text-text-muted leading-tight block mt-0.5">
+                        Тема доступна без предварительного прохождения предыдущих шагов
+                      </span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Difficulty */}
+              <div>
+                <label className="block text-[11px] font-semibold text-text-secondary mb-1.5">
+                  Сложность
+                </label>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {(["BEGINNER", "INTERMEDIATE", "ADVANCED", "EXPERT"] as const).map((lvl) => (
+                    <button
+                      key={lvl}
+                      type="button"
+                      onClick={() => setDifficulty(lvl)}
+                      className={`px-2 py-1.5 rounded-sm text-[11px] font-medium border text-center transition-all cursor-pointer ${
+                        difficulty === lvl
+                          ? "bg-surface-elevated border-status-available text-status-available"
+                          : "bg-surface-card border-border-subtle text-text-muted hover:text-text-secondary"
+                      }`}
+                    >
+                      {lvl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tier Selection */}
+              <div>
+                <label className="block text-[11px] font-semibold text-text-secondary mb-1.5">
+                  Уровень курса (Tier)
+                </label>
+                <select
+                  value={selectedTierId}
+                  onChange={(e) => setSelectedTierId(e.target.value)}
+                  className="w-full bg-surface-canvas border border-border-subtle rounded-md px-3 py-2 text-text-primary text-xs focus:outline-none focus:border-border-focus"
+                >
+                  <option value="">Без тира (Основной уровень)</option>
+                  {availableTiers.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      T{t.level}: {t.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {/* Summary with Edit / Preview Switch */}
               <div>
                 <div className="flex items-center justify-between mb-1">
@@ -638,46 +899,131 @@ export function StudioTopicDrawer({
                 )}
               </div>
 
-              {/* Difficulty */}
-              <div>
-                <label className="block text-[11px] font-semibold text-text-secondary mb-1.5">
-                  Сложность
-                </label>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {(["BEGINNER", "INTERMEDIATE", "ADVANCED", "EXPERT"] as const).map((lvl) => (
-                    <button
-                      key={lvl}
-                      type="button"
-                      onClick={() => setDifficulty(lvl)}
-                      className={`px-2 py-1.5 rounded-sm text-[11px] font-medium border text-center transition-all cursor-pointer ${
-                        difficulty === lvl
-                          ? "bg-surface-elevated border-status-available text-status-available"
-                          : "bg-surface-card border-border-subtle text-text-muted hover:text-text-secondary"
-                      }`}
-                    >
-                      {lvl}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {/* Full Article Markdown Editor */}
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label className="text-[11px] font-semibold text-text-secondary">
+                    Теоретический материал темы (Markdown)
+                  </label>
 
-              {/* Tier Selection */}
-              <div>
-                <label className="block text-[11px] font-semibold text-text-secondary mb-1.5">
-                  Уровень курса (Tier)
-                </label>
-                <select
-                  value={selectedTierId}
-                  onChange={(e) => setSelectedTierId(e.target.value)}
-                  className="w-full bg-surface-canvas border border-border-subtle rounded-md px-3 py-2 text-text-primary text-xs focus:outline-none focus:border-border-focus"
-                >
-                  <option value="">Без тира (Основной уровень)</option>
-                  {availableTiers.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      T{t.level}: {t.title}
-                    </option>
-                  ))}
-                </select>
+                  <div className="flex items-center gap-1">
+                    {/* Formatting toolbar buttons (visible in edit mode) */}
+                    {descriptionMode === "edit" && (
+                      <div className="flex items-center gap-0.5 p-0.5 rounded bg-surface-canvas border border-border-subtle mr-1">
+                        <button
+                          type="button"
+                          onClick={() => insertMarkdown("heading")}
+                          title="Заголовок H2"
+                          className="p-1 text-text-muted hover:text-text-primary hover:bg-surface-elevated rounded cursor-pointer transition-colors"
+                        >
+                          <Heading className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => insertMarkdown("bold")}
+                          title="Жирный шрифт (Ctrl+B)"
+                          className="p-1 text-text-muted hover:text-text-primary hover:bg-surface-elevated rounded cursor-pointer transition-colors"
+                        >
+                          <Bold className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => insertMarkdown("italic")}
+                          title="Курсив (Ctrl+I)"
+                          className="p-1 text-text-muted hover:text-text-primary hover:bg-surface-elevated rounded cursor-pointer transition-colors"
+                        >
+                          <Italic className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => insertMarkdown("code")}
+                          title="Встроенный код (Ctrl+E)"
+                          className="p-1 text-text-muted hover:text-text-primary hover:bg-surface-elevated rounded cursor-pointer transition-colors"
+                        >
+                          <Code className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => insertMarkdown("codeblock")}
+                          title="Блок кода с подсветкой"
+                          className="px-1.5 py-0.5 text-text-muted hover:text-text-primary hover:bg-surface-elevated rounded cursor-pointer transition-colors font-mono text-[10px] font-semibold"
+                        >
+                          {"{ }"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => insertMarkdown("quote")}
+                          title="Цитата (>)"
+                          className="p-1 text-text-muted hover:text-text-primary hover:bg-surface-elevated rounded cursor-pointer transition-colors"
+                        >
+                          <Quote className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => insertMarkdown("list")}
+                          title="Список (-)"
+                          className="p-1 text-text-muted hover:text-text-primary hover:bg-surface-elevated rounded cursor-pointer transition-colors"
+                        >
+                          <List className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Mode switcher: Editor vs Preview */}
+                    <div className="flex items-center gap-1 p-0.5 rounded bg-surface-canvas border border-border-subtle text-[10px]">
+                      <button
+                        type="button"
+                        onClick={() => setDescriptionMode("edit")}
+                        className={`px-2 py-0.5 rounded-xs transition-colors cursor-pointer ${
+                          descriptionMode === "edit"
+                            ? "bg-surface-elevated text-text-primary font-medium"
+                            : "text-text-muted hover:text-text-secondary"
+                        }`}
+                      >
+                        Редактор
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDescriptionMode("preview")}
+                        className={`px-2 py-0.5 rounded-xs transition-colors cursor-pointer ${
+                          descriptionMode === "preview"
+                            ? "bg-surface-elevated text-status-available font-medium"
+                            : "text-text-muted hover:text-text-secondary"
+                        }`}
+                      >
+                        Предпросмотр
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {descriptionMode === "edit" ? (
+                  <div>
+                    <textarea
+                      ref={textareaRef}
+                      rows={16}
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      onKeyDown={handleEditorKeyDown}
+                      placeholder="Подробный обучающий материал темы в формате Markdown: заголовки, списки, примеры кода, таблицы, цитаты..."
+                      className="w-full min-h-[380px] h-[420px] bg-surface-canvas border border-border-subtle rounded-md p-3 text-text-primary font-mono text-xs placeholder:text-text-muted focus:outline-none focus:border-border-focus resize-y leading-relaxed"
+                    />
+                    <div className="flex items-center justify-between text-[10px] text-text-muted mt-1 px-1">
+                      <span>Шорткаты: Ctrl+B (жирный), Ctrl+I (курсив), Ctrl+E (код), Tab (отступ 2 пробела)</span>
+                      <span className="font-mono">{description.length} симв.</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-full min-h-[380px] max-h-[550px] overflow-y-auto bg-surface-canvas border border-border-subtle rounded-md p-4 text-xs leading-relaxed">
+                    {description.trim() ? (
+                      <MarkdownRenderer content={description} />
+                    ) : (
+                      <span className="text-text-muted italic">
+                        Текст теоретической статьи пуст. Переключитесь в режим редактора для ввода Markdown.
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Key Points */}
@@ -764,7 +1110,7 @@ export function StudioTopicDrawer({
                 </div>
               </div>
 
-              {/* Save content action button */}
+              {/* Save content action button with dirty state */}
               <div className="pt-3 border-t border-border-subtle flex items-center justify-between">
                 <span className="text-xs font-mono text-status-completed">
                   {contentStatus}
@@ -772,10 +1118,11 @@ export function StudioTopicDrawer({
                 <Button
                   onClick={handleSaveContent}
                   isLoading={isSavingContent}
+                  disabled={!isContentDirty || isSavingContent}
                   size="sm"
                   variant="primary"
                 >
-                  Сохранить контент
+                  Сохранить изменения
                 </Button>
               </div>
             </div>

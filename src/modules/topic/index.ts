@@ -20,3 +20,4 @@ export { getTopicDetails } from "./services/topic-service";
 export { TopicHeader } from "./components/topic-header";
 export { TopicKeyPoints } from "./components/topic-key-points";
 export { TopicFooterAction } from "./components/topic-footer-action";
+export { TopicReaderView } from "./components/topic-reader-view";
