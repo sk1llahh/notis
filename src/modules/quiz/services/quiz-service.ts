@@ -1,23 +1,47 @@
 import { prisma } from "@/server/db";
 import { GAMIFICATION_RULES } from "@/shared/config";
+import type { TestCase } from "@/modules/code-runner";
+import { getQuestionEvaluator } from "../domain/evaluators/question-evaluators";
 import type {
   QuizOptionDTO,
   QuizQuestionDTO,
   QuizQuestionResultDTO,
   QuizResultDTO,
   QuizSubmissionDTO,
+  QuizQuestionType,
 } from "../types";
 
 export interface EvaluatableQuestion {
   id: string;
-  type: "SINGLE_CHOICE" | "MULTIPLE_CHOICE";
+  type: QuizQuestionType;
   options: { id: string; text: string; codeSnippet?: string }[];
   correctAnswerIndexes: number[];
+  acceptedAnswers?: string[];
+  codeTemplate?: string;
+  testCases?: TestCase[];
   explanation?: string | null;
 }
 
 /**
- * Pure evaluation function for calculating quiz results.
+ * Normalizes user submission answers into a Map for fast lookup.
+ * Supports both Array<{ questionId, answer }> and Record<string, unknown>.
+ */
+function normalizeSubmissionAnswers(answers: QuizSubmissionDTO["answers"]): Map<string, unknown> {
+  const map = new Map<string, unknown>();
+  if (Array.isArray(answers)) {
+    for (const item of answers) {
+      map.set(item.questionId, item.answer);
+    }
+  } else if (typeof answers === "object" && answers !== null) {
+    for (const [key, val] of Object.entries(answers)) {
+      map.set(key, val);
+    }
+  }
+  return map;
+}
+
+/**
+ * Pure evaluation function for calculating quiz results using the Question Strategy Engine.
  * Can be tested in isolation with zero I/O side effects.
  */
 export function calculateQuizResult(
@@ -36,21 +60,37 @@ export function calculateQuizResult(
     };
   }
 
+  const answerMap = normalizeSubmissionAnswers(submission.answers);
   const breakdown: QuizQuestionResultDTO[] = [];
   let correctCount = 0;
 
   for (const q of questions) {
-    const correctOptionIds = q.correctAnswerIndexes
+    const rawAnswer = answerMap.get(q.id);
+    const evaluator = getQuestionEvaluator(q.type);
+
+    let isCorrect = false;
+    let selectedOptionIds: string[] = [];
+
+    const validation = evaluator.validateAnswer(rawAnswer);
+    if (validation.valid && validation.parsed !== undefined) {
+      isCorrect = evaluator.evaluate(validation.parsed, {
+        correctAnswerIndexes: q.correctAnswerIndexes,
+        acceptedAnswers: q.acceptedAnswers,
+        testCases: q.testCases,
+        codeTemplate: q.codeTemplate,
+        options: q.options,
+      });
+    }
+
+    if (Array.isArray(rawAnswer)) {
+      selectedOptionIds = rawAnswer.map(String);
+    } else if (rawAnswer !== undefined && rawAnswer !== null) {
+      selectedOptionIds = [String(rawAnswer)];
+    }
+
+    const correctOptionIds = (q.correctAnswerIndexes ?? [])
       .map((idx) => q.options[idx]?.id ?? String(idx))
       .filter(Boolean);
-
-    const userSelectedIds = submission.answers[q.id] ?? [];
-
-    // Exact match evaluation
-    const isCorrect =
-      correctOptionIds.length === userSelectedIds.length &&
-      correctOptionIds.every((id) => userSelectedIds.includes(id)) &&
-      userSelectedIds.every((id) => correctOptionIds.includes(id));
 
     if (isCorrect) {
       correctCount++;
@@ -59,7 +99,8 @@ export function calculateQuizResult(
     breakdown.push({
       questionId: q.id,
       isCorrect,
-      selectedOptionIds: userSelectedIds,
+      selectedAnswer: rawAnswer,
+      selectedOptionIds,
       correctOptionIds,
       explanation: q.explanation ?? null,
     });
@@ -113,7 +154,7 @@ function parseQuestionOptions(rawOptions: unknown): QuizOptionDTO[] {
 
 /**
  * Server Service: Fetches quiz questions for a topic.
- * IMPORTANT: Strictly omits `correctAnswerIndexes` to prevent client answer leakage.
+ * IMPORTANT: Strictly omits `correctAnswerIndexes` and `acceptedAnswers` to prevent client answer leakage (Zero-Trust).
  */
 export async function getQuizForTopic(
   topicId: string,
@@ -139,12 +180,31 @@ export async function getQuizForTopic(
       q.translations[0];
 
     const options = parseQuestionOptions(trans?.options);
+    const config = trans?.gradingConfig as Record<string, unknown> | null;
+    let codeTemplate: string | undefined = undefined;
+    let testCases: TestCase[] | undefined = undefined;
+
+    const normalizedType: QuizQuestionType =
+      q.type === "OPEN_TEXT"
+        ? "SHORT_ANSWER"
+        : (q.type as QuizQuestionType);
+
+    if (normalizedType === "CODE" && config) {
+      if (typeof config.codeTemplate === "string") {
+        codeTemplate = config.codeTemplate;
+      }
+      if (Array.isArray(config.testCases)) {
+        testCases = config.testCases as TestCase[];
+      }
+    }
 
     return {
       id: q.id,
       question: trans?.prompt ?? "Вопрос без описания",
-      type: q.type === "MULTIPLE_CHOICE" ? "MULTIPLE_CHOICE" : "SINGLE_CHOICE",
+      type: normalizedType,
       options,
+      codeTemplate,
+      testCases,
     };
   });
 }
@@ -177,12 +237,36 @@ export async function evaluateQuizSubmission(
       q.translations[0];
 
     const options = parseQuestionOptions(trans?.options);
+    const config = trans?.gradingConfig as Record<string, unknown> | null;
+    let codeTemplate: string | undefined = undefined;
+    let testCases: TestCase[] | undefined = undefined;
+    let acceptedAnswers: string[] | undefined = undefined;
+
+    const normalizedType: QuizQuestionType =
+      q.type === "OPEN_TEXT"
+        ? "SHORT_ANSWER"
+        : (q.type as QuizQuestionType);
+
+    if (config) {
+      if (typeof config.codeTemplate === "string") {
+        codeTemplate = config.codeTemplate;
+      }
+      if (Array.isArray(config.testCases)) {
+        testCases = config.testCases as TestCase[];
+      }
+      if (Array.isArray(config.acceptedAnswers)) {
+        acceptedAnswers = config.acceptedAnswers.map(String);
+      }
+    }
 
     return {
       id: q.id,
-      type: q.type === "MULTIPLE_CHOICE" ? "MULTIPLE_CHOICE" : "SINGLE_CHOICE",
+      type: normalizedType,
       options,
       correctAnswerIndexes: q.correctAnswerIndexes,
+      acceptedAnswers,
+      codeTemplate,
+      testCases,
       explanation: trans?.explanation,
     };
   });

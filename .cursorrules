@@ -1,0 +1,66 @@
+# NOTIS AI AGENT SYSTEM RULES (.cursorrules)
+# Version: 1.0.0 (September 2026)
+# Target Stack: Next.js 16 (App Router), React 19, Prisma 6, Neon PostgreSQL, Tailwind v4, Zod, @xyflow/react
+
+# ==============================================================================
+# 0. CRITICAL MANDATORY INVARIANT
+# ==============================================================================
+# BEFORE PERFORMING ANY TASK OR WRITING ANY CODE:
+# 1. You MUST read and strictly adhere to "docs/ARCHITECTURE_RULES.md".
+# 2. You MUST check the current task queue and acceptance criteria in "docs/TASK_QUEUE.md".
+# 3. You MUST NEVER bypass architectural guidelines, introduce one-off hardcoded hacks,
+#    or break existing test suites.
+
+# ==============================================================================
+# 1. ARCHITECTURAL PATTERNS & PROHIBITIONS
+# ==============================================================================
+# [QUIZ ENGINE: STRICT PROHIBITION OF HARDCODING]
+# - NEVER hardcode question types with scattered if/switch checks in components or services.
+# - The Quiz Engine strictly follows the polymorphic Strategy / Registry pattern.
+# - Supported types: SINGLE_CHOICE, MULTIPLE_CHOICE, SHORT_ANSWER, CODE, FLASHCARD.
+# - Every question type must provide:
+#     a) Zod configuration & answer schema
+#     b) Server-side pure Evaluator (zero-trust, isolated from answer leakage)
+#     c) Client-side interactive Input component registered in the UI factory
+#     d) Authoring Studio Form in the drawer (/studio/[slug])
+# - Never implement one question type in isolation if it breaks or bypasses the registry contract.
+
+# [MUTATIONS & SAFE ACTIONS (RESULT PATTERN)]
+# - All mutations must be encapsulated in "createSafeAction".
+# - NEVER throw unhandled errors to the client.
+# - Always validate raw input using Zod before executing business logic.
+# - Use "ActionException(code, message)" for expected domain errors (UNAUTHORIZED, FORBIDDEN, BAD_REQUEST, CONFLICT, NOT_FOUND).
+# - Obfuscate unexpected database/runtime crashes into INTERNAL_SERVER_ERROR.
+# - Always rethrow Next.js framework system errors (NEXT_REDIRECT, NEXT_NOT_FOUND).
+
+# [ZERO-TRUST SECURITY]
+# - NEVER leak correct answers, regex patterns, or hidden code test cases to client DTOs.
+# - Answers are verified strictly on the server.
+# - Explanations and answer evaluations are returned only after submission is graded.
+# - Anti-exploit: XP is granted only once on first completion. Re-takes strictly yield 0 XP.
+
+# [DATABASE INTEGRITY & TRANSACTIONS]
+# - Foreign keys follow "onDelete: Restrict" semantics.
+# - NEVER perform single-row ad-hoc deletions of parent entities (Course, Topic, Question, User).
+# - Complex deletions MUST run inside "prisma.$transaction" with explicit cleanup of dependent records:
+#     prerequisites, graph layouts, quiz attempts, review cards, translations, and user progress.
+
+# [ROADMAP GRAPH & DFS CYCLE GUARD]
+# - The roadmap graph is strictly a Directed Acyclic Graph (DAG).
+# - Adding any edge (TopicPrerequisite) MUST pass DFS cycle detection via "wouldCreateCycle".
+# - Reject self-loops and any transitive paths that create cycles with CONFLICT error.
+# - Respect Course Tiers and deterministic Fog of War calculations (LOCKED, AVAILABLE, IN_PROGRESS, COMPLETED).
+
+# [SPACED REPETITION (SM-2)]
+# - SuperMemo-2 mathematical formulas for Easiness Factor (EF) and intervals (I) are invariant.
+# - Support automatic card ingestion (completed topics) and manual cards (Flashcard Builder).
+
+# ==============================================================================
+# 2. QUALITY GATES & VERIFICATION (ZERO-REGRESSION POLICY)
+# ==============================================================================
+# - Before reporting task completion, you MUST run:
+#     pnpm validate (runs: pnpm typecheck && pnpm test && pnpm build)
+# - All existing 185+ tests MUST remain 100% passing.
+# - Any new logic or Server Action MUST include corresponding unit tests covering both
+#   valid input and boundary/error conditions.
+# - Update "docs/TASK_QUEUE.md" to reflect current progress upon completion.

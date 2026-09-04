@@ -38,9 +38,12 @@ export interface StudioQuizOptionDTO {
 export interface StudioQuizQuestionDTO {
   id: string;
   question: string;
-  type: "SINGLE_CHOICE" | "MULTIPLE_CHOICE";
+  type: "SINGLE_CHOICE" | "MULTIPLE_CHOICE" | "SHORT_ANSWER" | "CODE";
   options: StudioQuizOptionDTO[];
   correctIndexes: number[];
+  acceptedAnswers?: string[];
+  codeTemplate?: string;
+  testCases?: any[];
   explanation?: string;
   order: number;
 }

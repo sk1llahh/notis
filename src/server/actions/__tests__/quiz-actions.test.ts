@@ -23,7 +23,27 @@ describe("submitQuizAction & Schema Validation", () => {
     if (parsed.success) {
       assert.equal(parsed.data.courseSlug, "cs-foundations");
       assert.equal(parsed.data.topicSlug, "memory-basics");
-      assert.deepEqual(parsed.data.answers["q-1"], ["opt-0"]);
+      assert.deepEqual((parsed.data.answers as Record<string, unknown>)["q-1"], ["opt-0"]);
+    }
+  });
+
+  test("1.1. submitQuizSchema parses polymorphic array answers format", () => {
+    const validPolymorphic = {
+      courseSlug: "cs-foundations",
+      topicSlug: "memory-basics",
+      answers: [
+        { questionId: "q-single", answer: 0 },
+        { questionId: "q-multi", answer: [0, 2] },
+        { questionId: "q-short", answer: "стек" },
+        { questionId: "q-code", answer: "function solution() { return true; }" },
+      ],
+    };
+
+    const parsed = submitQuizSchema.safeParse(validPolymorphic);
+    assert.equal(parsed.success, true);
+    if (parsed.success && Array.isArray(parsed.data.answers)) {
+      assert.equal(parsed.data.answers.length, 4);
+      assert.equal(parsed.data.answers[2].answer, "стек");
     }
   });
 

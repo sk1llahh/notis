@@ -1,4 +1,10 @@
-export type QuizQuestionType = "SINGLE_CHOICE" | "MULTIPLE_CHOICE";
+import type { TestCase } from "@/modules/code-runner";
+
+export type QuizQuestionType =
+  | "SINGLE_CHOICE"
+  | "MULTIPLE_CHOICE"
+  | "SHORT_ANSWER"
+  | "CODE";
 
 export interface QuizOptionDTO {
   id: string;
@@ -12,15 +18,23 @@ export interface QuizQuestionDTO {
   type: QuizQuestionType;
   codeSnippet?: string;
   options: QuizOptionDTO[];
+  codeTemplate?: string;
+  testCases?: TestCase[];
+}
+
+export interface QuizSubmissionAnswerItem {
+  questionId: string;
+  answer: unknown;
 }
 
 export interface QuizSubmissionDTO {
-  answers: Record<string, string[]>; // questionId -> selectedOptionIds
+  answers: Array<QuizSubmissionAnswerItem> | Record<string, unknown>;
 }
 
 export interface QuizQuestionResultDTO {
   questionId: string;
   isCorrect: boolean;
+  selectedAnswer?: unknown;
   selectedOptionIds: string[];
   correctOptionIds: string[];
   explanation?: string | null;

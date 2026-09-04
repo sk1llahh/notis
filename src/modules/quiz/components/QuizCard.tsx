@@ -1,5 +1,7 @@
+"use client";
+
 import React from "react";
-import { ArrowLeft, ArrowRight, Check, Send } from "lucide-react";
+import { ArrowLeft, ArrowRight, Send } from "lucide-react";
 import {
   Badge,
   Button,
@@ -9,12 +11,15 @@ import {
   CardContent,
   MarkdownRenderer,
 } from "@/shared/ui";
-import type { QuizQuestionDTO } from "../types";
+import type { QuizQuestionDTO, QuizQuestionType } from "../types";
+import { QuestionInputFactory } from "./question-types/QuestionInputFactory";
 
-interface QuizCardProps {
+export interface QuizCardProps {
   question: QuizQuestionDTO;
-  selectedOptionIds: string[];
-  onToggleOption: (optionId: string) => void;
+  answer?: unknown;
+  selectedOptionIds?: string[];
+  onAnswerChange?: (answer: unknown) => void;
+  onToggleOption?: (optionId: string) => void;
   onNext: () => void;
   onPrev?: () => void;
   isFirst: boolean;
@@ -22,9 +27,54 @@ interface QuizCardProps {
   isSubmitting?: boolean;
 }
 
+function checkHasAnswer(type: QuizQuestionType, answer: unknown): boolean {
+  if (answer === undefined || answer === null) return false;
+
+  switch (type) {
+    case "SINGLE_CHOICE":
+      if (typeof answer === "number") return true;
+      if (typeof answer === "string") return answer.trim().length > 0;
+      if (Array.isArray(answer)) return answer.length > 0;
+      return false;
+
+    case "MULTIPLE_CHOICE":
+      return Array.isArray(answer) && answer.length > 0;
+
+    case "SHORT_ANSWER":
+      if (typeof answer === "string") return answer.trim().length > 0;
+      if (Array.isArray(answer)) return answer.length > 0 && String(answer[0]).trim().length > 0;
+      return false;
+
+    case "CODE":
+      if (typeof answer === "string") return answer.trim().length > 0;
+      if (Array.isArray(answer)) return answer.length > 0 && String(answer[0]).trim().length > 0;
+      return false;
+
+    default:
+      return false;
+  }
+}
+
+function getQuestionTypeBadge(type: QuizQuestionType) {
+  switch (type) {
+    case "SINGLE_CHOICE":
+      return <Badge variant="outline" size="sm">Один верный ответ</Badge>;
+    case "MULTIPLE_CHOICE":
+      return <Badge variant="outline" size="sm">Множественный выбор</Badge>;
+    case "SHORT_ANSWER":
+      return <Badge variant="progress" size="sm">Краткий ответ</Badge>;
+    case "CODE":
+      return <Badge variant="available" size="sm">Практика: Код</Badge>;
+    default:
+      return <Badge variant="outline" size="sm">Вопрос</Badge>;
+  }
+}
+
 export function QuizCard({
   question,
+  answer,
   selectedOptionIds,
+  onAnswerChange,
   onToggleOption,
   onNext,
   onPrev,
@@ -32,17 +82,29 @@ export function QuizCard({
   isLast,
   isSubmitting = false,
 }: QuizCardProps) {
-  const isMultiple = question.type === "MULTIPLE_CHOICE";
-  const hasSelection = selectedOptionIds.length > 0;
+  // Resolve answer from answer prop or fallback to selectedOptionIds
+  const currentAnswer = answer !== undefined ? answer : selectedOptionIds;
+
+  const handleAnswerChange = (val: unknown) => {
+    if (onAnswerChange) {
+      onAnswerChange(val);
+    } else if (onToggleOption) {
+      if (Array.isArray(val)) {
+        onToggleOption(val.map(String).join(","));
+      } else {
+        onToggleOption(String(val));
+      }
+    }
+  };
+
+  const hasSelection = checkHasAnswer(question.type, currentAnswer);
 
   return (
     <Card variant="elevated" className="space-y-6 p-6">
       {/* Header with question type badge */}
       <CardHeader className="p-0 space-y-3">
         <div className="flex items-center justify-between">
-          <Badge variant="outline" size="sm">
-            {isMultiple ? "Множественный выбор" : "Один верный ответ"}
-          </Badge>
+          {getQuestionTypeBadge(question.type)}
         </div>
 
         <CardTitle className="text-lg sm:text-xl font-bold text-text-primary leading-snug">
@@ -56,64 +118,18 @@ export function QuizCard({
         )}
       </CardHeader>
 
-      {/* Options list */}
-      <CardContent className="p-0 space-y-2.5">
-        {question.options.map((option) => {
-          const isSelected = selectedOptionIds.includes(option.id);
-
-          return (
-            <div
-              key={option.id}
-              onClick={() => onToggleOption(option.id)}
-              role={isMultiple ? "checkbox" : "radio"}
-              aria-checked={isSelected}
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === " " || e.key === "Enter") {
-                  e.preventDefault();
-                  onToggleOption(option.id);
-                }
-              }}
-              className={`flex items-start gap-3 p-3.5 rounded-lg border cursor-pointer select-none transition-all duration-200 outline-none ${
-                isSelected
-                  ? "border-status-available bg-status-available/10 text-text-primary ring-1 ring-status-available shadow-sm"
-                  : "border-border-subtle bg-surface-card hover:bg-surface-hover hover:border-border-strong text-text-secondary"
-              }`}
-            >
-              {/* Checkbox / Radio Visual Indicator */}
-              <div
-                className={`w-5 h-5 mt-0.5 rounded-${
-                  isMultiple ? "sm" : "full"
-                } border flex items-center justify-center shrink-0 transition-colors ${
-                  isSelected
-                    ? "border-status-available bg-status-available text-surface-canvas"
-                    : "border-border-strong bg-surface-elevated"
-                }`}
-              >
-                {isSelected && (
-                  isMultiple ? (
-                    <Check className="w-3.5 h-3.5 stroke-[3]" />
-                  ) : (
-                    <div className="w-2 h-2 rounded-full bg-surface-canvas" />
-                  )
-                )}
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <span className="text-sm leading-relaxed">{option.text}</span>
-                {option.codeSnippet && (
-                  <pre className="mt-2 p-2 rounded bg-surface-canvas text-xs font-mono text-text-primary">
-                    <code>{option.codeSnippet}</code>
-                  </pre>
-                )}
-              </div>
-            </div>
-          );
-        })}
+      {/* Dynamic Question Input Component via Factory */}
+      <CardContent className="p-0">
+        <QuestionInputFactory
+          question={question}
+          value={currentAnswer}
+          onChange={handleAnswerChange}
+          disabled={isSubmitting}
+        />
       </CardContent>
 
       {/* Footer Navigation */}
-      <div className="flex items-center justify-between pt-4 border-t border-border-subtle">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-border-subtle">
         <div>
           {!isFirst && onPrev && (
             <Button
@@ -127,22 +143,30 @@ export function QuizCard({
           )}
         </div>
 
-        <Button
-          variant="primary"
-          size="md"
-          onClick={onNext}
-          disabled={!hasSelection || isSubmitting}
-          isLoading={isSubmitting}
-          rightIcon={
-            isLast ? (
-              <Send className="w-4 h-4 ml-1" />
-            ) : (
-              <ArrowRight className="w-4 h-4 ml-1" />
-            )
-          }
-        >
-          {isLast ? "Завершить тест" : "Следующий вопрос"}
-        </Button>
+        <div className="flex items-center justify-end gap-3">
+          {question.type === "CODE" && !hasSelection && (
+            <span className="text-xs text-text-muted hidden sm:inline">
+              Запустите код и пройдите все тесты для продолжения
+            </span>
+          )}
+
+          <Button
+            variant="primary"
+            size="md"
+            onClick={onNext}
+            disabled={!hasSelection || isSubmitting}
+            isLoading={isSubmitting}
+            rightIcon={
+              isLast ? (
+                <Send className="w-4 h-4 ml-1" />
+              ) : (
+                <ArrowRight className="w-4 h-4 ml-1" />
+              )
+            }
+          >
+            {isLast ? "Завершить тест" : "Следующий вопрос"}
+          </Button>
+        </div>
       </div>
     </Card>
   );

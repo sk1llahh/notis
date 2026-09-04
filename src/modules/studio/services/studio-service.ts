@@ -278,12 +278,41 @@ export async function getTopicStudioDetails(
       });
     }
 
+    const config = qTrans?.gradingConfig as Record<string, unknown> | null;
+    let acceptedAnswers: string[] | undefined = undefined;
+    let codeTemplate: string | undefined = undefined;
+    let testCases: any[] | undefined = undefined;
+
+    if (config) {
+      if (Array.isArray(config.acceptedAnswers)) {
+        acceptedAnswers = config.acceptedAnswers.map(String);
+      }
+      if (typeof config.codeTemplate === "string") {
+        codeTemplate = config.codeTemplate;
+      }
+      if (Array.isArray(config.testCases)) {
+        testCases = config.testCases;
+      }
+    }
+
+    const mappedType: import("../types").StudioQuizQuestionDTO["type"] =
+      q.type === "OPEN_TEXT" || q.type === "SHORT_ANSWER"
+        ? "SHORT_ANSWER"
+        : q.type === "CODE"
+        ? "CODE"
+        : q.type === "MULTIPLE_CHOICE"
+        ? "MULTIPLE_CHOICE"
+        : "SINGLE_CHOICE";
+
     return {
       id: q.id,
       question: qTrans?.prompt ?? "Вопрос без текста",
-      type: q.type === "MULTIPLE_CHOICE" ? "MULTIPLE_CHOICE" : "SINGLE_CHOICE",
+      type: mappedType,
       options,
       correctIndexes: q.correctAnswerIndexes,
+      acceptedAnswers,
+      codeTemplate,
+      testCases,
       explanation: qTrans?.explanation ?? undefined,
       order: q.order,
     };

@@ -143,4 +143,52 @@ describe("Quiz Evaluation Service", () => {
     assert.equal(result.passed, true);
     assert.equal(result.xpEarned, 0); // No bonus for non-100%
   });
+
+  test("5. Evaluates SHORT_ANSWER and CODE questions correctly", () => {
+    const mixedQuestions: EvaluatableQuestion[] = [
+      {
+        id: "q-short",
+        type: "SHORT_ANSWER",
+        options: [],
+        correctAnswerIndexes: [],
+        acceptedAnswers: ["стек", "stack"],
+      },
+      {
+        id: "q-code",
+        type: "CODE",
+        options: [],
+        correctAnswerIndexes: [],
+        testCases: [
+          { name: "double", input: [4], expected: 8 },
+        ],
+      },
+    ];
+
+    const validSubmission = {
+      answers: {
+        "q-short": "  STACK  ",
+        "q-code": "function solution(n) { return n * 2; }",
+      },
+    };
+
+    const result = calculateQuizResult(mixedQuestions, validSubmission);
+    assert.equal(result.score, 100);
+    assert.equal(result.passed, true);
+    assert.equal(result.correctQuestions, 2);
+  });
+
+  test("6. Supports polymorphic array format Array<{ questionId, answer }>", () => {
+    const polymorphicSubmission = {
+      answers: [
+        { questionId: "q1", answer: 0 },
+        { questionId: "q2", answer: [0, 1, 3] },
+        { questionId: "q3", answer: 1 },
+      ],
+    };
+
+    const result = calculateQuizResult(mockQuestions, polymorphicSubmission);
+    assert.equal(result.score, 100);
+    assert.equal(result.passed, true);
+    assert.equal(result.correctQuestions, 3);
+  });
 });

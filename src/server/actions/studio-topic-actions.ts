@@ -42,16 +42,38 @@ export const upsertQuizQuestionSchema = z
     topicId: z.string().min(1, "ID темы обязателен"),
     questionId: z.string().optional(),
     question: z.string().min(5, "Текст вопроса должен содержать не менее 5 символов"),
-    type: z.enum(["SINGLE_CHOICE", "MULTIPLE_CHOICE"]),
-    options: z.array(quizOptionSchema).min(2, "Требуется минимум 2 варианта ответа"),
-    correctIndexes: z.array(z.number()).min(1, "Выберите хотя бы один правильный ответ"),
+    type: z.enum(["SINGLE_CHOICE", "MULTIPLE_CHOICE", "SHORT_ANSWER", "CODE"]).default("SINGLE_CHOICE"),
+    options: z.array(quizOptionSchema).optional().default([]),
+    correctIndexes: z.array(z.number()).optional().default([]),
+    acceptedAnswers: z.array(z.string()).optional().default([]),
+    codeTemplate: z.string().optional(),
+    testCases: z.array(z.any()).optional().default([]),
     explanation: z.string().optional(),
   })
   .refine(
-    (data) =>
-      data.correctIndexes.every(
-        (idx) => Number.isInteger(idx) && idx >= 0 && idx < data.options.length
-      ),
+    (data) => {
+      if (data.type === "SINGLE_CHOICE" || data.type === "MULTIPLE_CHOICE") {
+        return data.options.length >= 2;
+      }
+      return true;
+    },
+    {
+      message: "Требуется минимум 2 варианта ответа для вопроса с выбором",
+      path: ["options"],
+    }
+  )
+  .refine(
+    (data) => {
+      if (data.type === "SINGLE_CHOICE" || data.type === "MULTIPLE_CHOICE") {
+        return (
+          data.correctIndexes.length >= 1 &&
+          data.correctIndexes.every(
+            (idx) => Number.isInteger(idx) && idx >= 0 && idx < data.options.length
+          )
+        );
+      }
+      return true;
+    },
     {
       message: "Индексы правильных ответов выходят за диапазон вариантов",
       path: ["correctIndexes"],
@@ -63,6 +85,18 @@ export const upsertQuizQuestionSchema = z
     {
       message: "Для одиночного выбора допускается строго один правильный ответ",
       path: ["correctIndexes"],
+    }
+  )
+  .refine(
+    (data) => {
+      if (data.type === "SHORT_ANSWER") {
+        return data.acceptedAnswers.length > 0 && data.acceptedAnswers.some((a) => a.trim().length > 0);
+      }
+      return true;
+    },
+    {
+      message: "Укажите хотя бы один правильный текстовый ответ",
+      path: ["acceptedAnswers"],
     }
   );
 
@@ -211,12 +245,18 @@ export const upsertQuizQuestionAction = createSafeAction(
 
     let questionId = input.questionId;
 
+    const gradingConfig = {
+      acceptedAnswers: input.acceptedAnswers,
+      codeTemplate: input.codeTemplate,
+      testCases: input.testCases,
+    };
+
     if (questionId) {
       // Update existing question
       await prisma.question.update({
         where: { id: questionId },
         data: {
-          type: input.type,
+          type: input.type as any,
           correctAnswerIndexes: input.correctIndexes,
           translations: {
             upsert: {
@@ -231,11 +271,13 @@ export const upsertQuizQuestionAction = createSafeAction(
                 prompt: input.question,
                 options: input.options,
                 explanation: input.explanation,
+                gradingConfig: gradingConfig as any,
               },
               update: {
                 prompt: input.question,
                 options: input.options,
                 explanation: input.explanation,
+                gradingConfig: gradingConfig as any,
               },
             },
           },
@@ -251,7 +293,7 @@ export const upsertQuizQuestionAction = createSafeAction(
       const newQuestion = await prisma.question.create({
         data: {
           topicId: input.topicId,
-          type: input.type,
+          type: input.type as any,
           order: count + 1,
           correctAnswerIndexes: input.correctIndexes,
           translations: {
@@ -260,6 +302,7 @@ export const upsertQuizQuestionAction = createSafeAction(
               prompt: input.question,
               options: input.options,
               explanation: input.explanation,
+              gradingConfig: gradingConfig as any,
             },
           },
         },

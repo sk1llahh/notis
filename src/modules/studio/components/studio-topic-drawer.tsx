@@ -97,12 +97,19 @@ export function StudioTopicDrawer({
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
   const [qText, setQText] = useState("");
-  const [qType, setQType] = useState<"SINGLE_CHOICE" | "MULTIPLE_CHOICE">("SINGLE_CHOICE");
+  const [qType, setQType] = useState<
+    "SINGLE_CHOICE" | "MULTIPLE_CHOICE" | "SHORT_ANSWER" | "CODE"
+  >("SINGLE_CHOICE");
   const [qOptions, setQOptions] = useState<Array<{ text: string; codeSnippet?: string }>>([
     { text: "" },
     { text: "" },
   ]);
   const [qCorrectIndexes, setQCorrectIndexes] = useState<number[]>([0]);
+  const [qAcceptedAnswers, setQAcceptedAnswers] = useState<string[]>([""]);
+  const [qCodeTemplate, setQCodeTemplate] = useState("// Напишите решение здесь\nfunction solution() {\n  \n}\n");
+  const [qTestCases, setQTestCases] = useState<
+    Array<{ name: string; input: string; expected: string }>
+  >([{ name: "Тест #1", input: "[]", expected: "true" }]);
   const [qExplanation, setQExplanation] = useState("");
   const [quizStatus, setQuizStatus] = useState<string | null>(null);
   const [isSavingQuiz, startSavingQuiz] = useTransition();
@@ -252,6 +259,9 @@ export function StudioTopicDrawer({
     setQType("SINGLE_CHOICE");
     setQOptions([{ text: "" }, { text: "" }]);
     setQCorrectIndexes([0]);
+    setQAcceptedAnswers([""]);
+    setQCodeTemplate("// Напишите решение здесь\nfunction solution() {\n  \n}\n");
+    setQTestCases([{ name: "Тест #1", input: "[]", expected: "true" }]);
     setQExplanation("");
     setQuizStatus(null);
   };
@@ -264,6 +274,23 @@ export function StudioTopicDrawer({
     setQType(q.type);
     setQOptions(q.options.length >= 2 ? q.options : [{ text: "" }, { text: "" }]);
     setQCorrectIndexes(q.correctIndexes);
+    setQAcceptedAnswers(
+      q.acceptedAnswers && q.acceptedAnswers.length > 0
+        ? q.acceptedAnswers
+        : [""]
+    );
+    setQCodeTemplate(
+      q.codeTemplate ?? "// Напишите решение здесь\nfunction solution() {\n  \n}\n"
+    );
+    setQTestCases(
+      q.testCases && q.testCases.length > 0
+        ? q.testCases.map((tc: any, i: number) => ({
+            name: tc.name || `Тест #${i + 1}`,
+            input: JSON.stringify(tc.input ?? []),
+            expected: JSON.stringify(tc.expected ?? true),
+          }))
+        : [{ name: "Тест #1", input: "[]", expected: "true" }]
+    );
     setQExplanation(q.explanation ?? "");
     setQuizStatus(null);
   };
@@ -289,14 +316,51 @@ export function StudioTopicDrawer({
 
     startSavingQuiz(async () => {
       setQuizStatus(null);
+
+      const parsedTestCases =
+        qType === "CODE"
+          ? qTestCases.map((tc) => {
+              let parsedInput: any[] = [];
+              let parsedExpected: any = true;
+              try {
+                parsedInput = JSON.parse(tc.input);
+                if (!Array.isArray(parsedInput)) parsedInput = [parsedInput];
+              } catch {
+                parsedInput = [tc.input];
+              }
+              try {
+                parsedExpected = JSON.parse(tc.expected);
+              } catch {
+                parsedExpected = tc.expected;
+              }
+              return {
+                name: tc.name,
+                input: parsedInput,
+                expected: parsedExpected,
+              };
+            })
+          : undefined;
+
       const res = await upsertQuizQuestionAction({
         courseSlug,
         topicId,
         questionId: editingQuestionId ?? undefined,
         question: qText,
         type: qType,
-        options: qOptions,
-        correctIndexes: qCorrectIndexes,
+        options:
+          qType === "SINGLE_CHOICE" || qType === "MULTIPLE_CHOICE"
+            ? qOptions
+            : [],
+        correctIndexes:
+          qType === "SINGLE_CHOICE" || qType === "MULTIPLE_CHOICE"
+            ? qCorrectIndexes
+            : [],
+        acceptedAnswers:
+          qType === "SHORT_ANSWER"
+            ? qAcceptedAnswers.filter((a) => a.trim().length > 0)
+            : [],
+        codeTemplate: qType === "CODE" ? qCodeTemplate : undefined,
+        testCases: parsedTestCases,
         explanation: qExplanation.trim() ? qExplanation : undefined,
       });
 
@@ -773,7 +837,7 @@ export function StudioTopicDrawer({
 
                   <div>
                     <label className="block text-[11px] font-semibold text-text-secondary mb-1">
-                      Тип выбора
+                      Тип вопроса
                     </label>
                     <div className="grid grid-cols-2 gap-2">
                       <button
@@ -788,8 +852,8 @@ export function StudioTopicDrawer({
                             : "border-border-subtle bg-surface-canvas text-text-muted"
                         }`}
                       >
-                        <span className="font-semibold block">Одиночный выбор</span>
-                        <span className="text-[10px] text-text-muted">1 верный ответ</span>
+                        <span className="font-semibold block">Один ответ</span>
+                        <span className="text-[10px] text-text-muted">SINGLE_CHOICE</span>
                       </button>
 
                       <button
@@ -801,93 +865,293 @@ export function StudioTopicDrawer({
                             : "border-border-subtle bg-surface-canvas text-text-muted"
                         }`}
                       >
-                        <span className="font-semibold block">Множественный выбор</span>
-                        <span className="text-[10px] text-text-muted">Несколько верных</span>
+                        <span className="font-semibold block">Несколько ответов</span>
+                        <span className="text-[10px] text-text-muted">MULTIPLE_CHOICE</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setQType("SHORT_ANSWER")}
+                        className={`p-2 rounded border text-left text-xs transition-colors cursor-pointer ${
+                          qType === "SHORT_ANSWER"
+                            ? "border-status-available bg-surface-card text-status-available"
+                            : "border-border-subtle bg-surface-canvas text-text-muted"
+                        }`}
+                      >
+                        <span className="font-semibold block">Краткий ответ</span>
+                        <span className="text-[10px] text-text-muted">SHORT_ANSWER</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setQType("CODE")}
+                        className={`p-2 rounded border text-left text-xs transition-colors cursor-pointer ${
+                          qType === "CODE"
+                            ? "border-status-available bg-surface-card text-status-available"
+                            : "border-border-subtle bg-surface-canvas text-text-muted"
+                        }`}
+                      >
+                        <span className="font-semibold block">Задача на код</span>
+                        <span className="text-[10px] text-text-muted">CODE</span>
                       </button>
                     </div>
                   </div>
 
-                  {/* Options */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-[11px] font-semibold text-text-secondary">
-                        Варианты ответа (отметьте правильные) *
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setQOptions([...qOptions, { text: "" }])}
-                        className="text-[11px] text-status-available hover:underline flex items-center gap-1 cursor-pointer"
-                      >
-                        <Plus className="w-3 h-3" /> Вариант
-                      </button>
-                    </div>
+                  {/* Options (SINGLE_CHOICE or MULTIPLE_CHOICE) */}
+                  {(qType === "SINGLE_CHOICE" || qType === "MULTIPLE_CHOICE") && (
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-[11px] font-semibold text-text-secondary">
+                          Варианты ответа (отметьте правильные) *
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setQOptions([...qOptions, { text: "" }])}
+                          className="text-[11px] text-status-available hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <Plus className="w-3 h-3" /> Вариант
+                        </button>
+                      </div>
 
-                    <div className="space-y-2">
-                      {qOptions.map((opt, idx) => {
-                        const isCorrect = qCorrectIndexes.includes(idx);
-                        return (
-                          <div
-                            key={idx}
-                            className={`p-2 rounded border flex items-center gap-2 ${
-                              isCorrect
-                                ? "border-status-completed/60 bg-status-completed/5"
-                                : "border-border-subtle bg-surface-canvas"
-                            }`}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => handleToggleCorrectIndex(idx)}
-                              className="cursor-pointer shrink-0 text-text-muted hover:text-status-completed"
-                              title="Отметить как правильный"
+                      <div className="space-y-2">
+                        {qOptions.map((opt, idx) => {
+                          const isCorrect = qCorrectIndexes.includes(idx);
+                          return (
+                            <div
+                              key={idx}
+                              className={`p-2 rounded border flex items-center gap-2 ${
+                                isCorrect
+                                  ? "border-status-completed/60 bg-status-completed/5"
+                                  : "border-border-subtle bg-surface-canvas"
+                              }`}
                             >
-                              {qType === "SINGLE_CHOICE" ? (
-                                <Radio
-                                  className={`w-4 h-4 ${
-                                    isCorrect ? "text-status-completed fill-status-completed" : ""
-                                  }`}
-                                />
-                              ) : (
-                                <CheckSquare
-                                  className={`w-4 h-4 ${
-                                    isCorrect ? "text-status-completed" : ""
-                                  }`}
-                                />
-                              )}
-                            </button>
-
-                            <input
-                              type="text"
-                              value={opt.text}
-                              onChange={(e) => {
-                                const next = [...qOptions];
-                                next[idx] = { ...next[idx], text: e.target.value };
-                                setQOptions(next);
-                              }}
-                              placeholder={`Вариант #${idx + 1}`}
-                              className="flex-1 bg-transparent border-none text-xs text-text-primary focus:outline-none"
-                            />
-
-                            {qOptions.length > 2 && (
                               <button
                                 type="button"
-                                onClick={() => {
-                                  setQOptions(qOptions.filter((_, i) => i !== idx));
-                                  setQCorrectIndexes(
-                                    qCorrectIndexes
-                                      .filter((i) => i !== idx)
-                                      .map((i) => (i > idx ? i - 1 : i))
-                                  );
+                                onClick={() => handleToggleCorrectIndex(idx)}
+                                className="cursor-pointer shrink-0 text-text-muted hover:text-status-completed"
+                                title="Отметить как правильный"
+                              >
+                                {qType === "SINGLE_CHOICE" ? (
+                                  <Radio
+                                    className={`w-4 h-4 ${
+                                      isCorrect ? "text-status-completed fill-status-completed" : ""
+                                    }`}
+                                  />
+                                ) : (
+                                  <CheckSquare
+                                    className={`w-4 h-4 ${
+                                      isCorrect ? "text-status-completed" : ""
+                                    }`}
+                                  />
+                                )}
+                              </button>
+
+                              <input
+                                type="text"
+                                value={opt.text}
+                                onChange={(e) => {
+                                  const next = [...qOptions];
+                                  next[idx] = { ...next[idx], text: e.target.value };
+                                  setQOptions(next);
                                 }}
+                                placeholder={`Вариант #${idx + 1}`}
+                                className="flex-1 bg-transparent border-none text-xs text-text-primary focus:outline-none"
+                              />
+
+                              {qOptions.length > 2 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setQOptions(qOptions.filter((_, i) => i !== idx));
+                                    setQCorrectIndexes(
+                                      qCorrectIndexes
+                                        .filter((i) => i !== idx)
+                                        .map((i) => (i > idx ? i - 1 : i))
+                                    );
+                                  }}
+                                  className="text-text-muted hover:text-red-400 p-1 cursor-pointer"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SHORT_ANSWER form fields */}
+                  {qType === "SHORT_ANSWER" && (
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-[11px] font-semibold text-text-secondary">
+                          Допустимые варианты ответа *
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setQAcceptedAnswers([...qAcceptedAnswers, ""])}
+                          className="text-[11px] text-status-available hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <Plus className="w-3 h-3" /> Вариант
+                        </button>
+                      </div>
+
+                      <div className="space-y-2">
+                        {qAcceptedAnswers.map((ans, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-2 p-2 rounded border border-border-subtle bg-surface-canvas"
+                          >
+                            <input
+                              type="text"
+                              value={ans}
+                              onChange={(e) => {
+                                const next = [...qAcceptedAnswers];
+                                next[idx] = e.target.value;
+                                setQAcceptedAnswers(next);
+                              }}
+                              placeholder={
+                                idx === 0
+                                  ? "Основной ответ (например, 'стек')"
+                                  : "Синоним / альтернатива (например, 'stack')"
+                              }
+                              className="flex-1 bg-transparent border-none text-xs text-text-primary focus:outline-none"
+                            />
+                            {qAcceptedAnswers.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setQAcceptedAnswers(
+                                    qAcceptedAnswers.filter((_, i) => i !== idx)
+                                  )
+                                }
                                 className="text-text-muted hover:text-red-400 p-1 cursor-pointer"
                               >
                                 <Trash2 className="w-3 h-3" />
                               </button>
                             )}
                           </div>
-                        );
-                      })}
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-text-muted mt-1.5">
+                        Регистр и внешние пробелы игнорируются при проверке. Ответ считается верным при совпадении с любым из указанных вариантов.
+                      </p>
                     </div>
-                  </div>
+                  )}
+
+                  {/* CODE form fields */}
+                  {qType === "CODE" && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-text-secondary mb-1">
+                          Шаблон стартового кода (codeTemplate)
+                        </label>
+                        <textarea
+                          rows={4}
+                          value={qCodeTemplate}
+                          onChange={(e) => setQCodeTemplate(e.target.value)}
+                          className="w-full bg-surface-canvas border border-border-subtle rounded-md px-2.5 py-1.5 font-mono text-xs text-text-primary focus:outline-none focus:border-border-focus resize-y"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="text-[11px] font-semibold text-text-secondary">
+                            Тест-кейсы для проверки решений *
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setQTestCases([
+                                ...qTestCases,
+                                {
+                                  name: `Тест #${qTestCases.length + 1}`,
+                                  input: "[]",
+                                  expected: "true",
+                                },
+                              ])
+                            }
+                            className="text-[11px] text-status-available hover:underline flex items-center gap-1 cursor-pointer"
+                          >
+                            <Plus className="w-3 h-3" /> Тест-кейс
+                          </button>
+                        </div>
+
+                        <div className="space-y-2">
+                          {qTestCases.map((tc, idx) => (
+                            <div
+                              key={idx}
+                              className="p-2.5 rounded border border-border-subtle bg-surface-canvas space-y-2"
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <input
+                                  type="text"
+                                  value={tc.name}
+                                  onChange={(e) => {
+                                    const next = [...qTestCases];
+                                    next[idx] = { ...next[idx], name: e.target.value };
+                                    setQTestCases(next);
+                                  }}
+                                  placeholder="Название теста"
+                                  className="font-semibold text-xs text-text-primary bg-transparent focus:outline-none flex-1"
+                                />
+                                {qTestCases.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setQTestCases(
+                                        qTestCases.filter((_, i) => i !== idx)
+                                      )
+                                    }
+                                    className="text-text-muted hover:text-red-400 p-1 cursor-pointer"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                )}
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+                                <div>
+                                  <span className="text-[10px] text-text-muted block mb-0.5">
+                                    Входные аргументы (JSON array):
+                                  </span>
+                                  <input
+                                    type="text"
+                                    value={tc.input}
+                                    onChange={(e) => {
+                                      const next = [...qTestCases];
+                                      next[idx] = { ...next[idx], input: e.target.value };
+                                      setQTestCases(next);
+                                    }}
+                                    placeholder="[1, 2]"
+                                    className="w-full bg-surface-elevated border border-border-subtle rounded px-2 py-1 text-xs text-text-primary focus:outline-none"
+                                  />
+                                </div>
+
+                                <div>
+                                  <span className="text-[10px] text-text-muted block mb-0.5">
+                                    Ожидаемый результат (JSON):
+                                  </span>
+                                  <input
+                                    type="text"
+                                    value={tc.expected}
+                                    onChange={(e) => {
+                                      const next = [...qTestCases];
+                                      next[idx] = { ...next[idx], expected: e.target.value };
+                                      setQTestCases(next);
+                                    }}
+                                    placeholder="3"
+                                    className="w-full bg-surface-elevated border border-border-subtle rounded px-2 py-1 text-xs text-text-primary focus:outline-none"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Explanation */}
                   <div>
@@ -943,11 +1207,27 @@ export function StudioTopicDrawer({
                             </p>
                             <div className="flex items-center gap-2 mt-1">
                               <Badge size="sm" variant="outline">
-                                {q.type === "SINGLE_CHOICE" ? "Одиночный" : "Множественный"}
+                                {q.type === "SINGLE_CHOICE"
+                                  ? "Одиночный"
+                                  : q.type === "MULTIPLE_CHOICE"
+                                  ? "Множественный"
+                                  : q.type === "SHORT_ANSWER"
+                                  ? "Краткий ответ"
+                                  : "Код"}
                               </Badge>
-                              <span className="text-[10px] text-text-muted">
-                                {q.options.length} вар.
-                              </span>
+                              {q.type === "SINGLE_CHOICE" || q.type === "MULTIPLE_CHOICE" ? (
+                                <span className="text-[10px] text-text-muted">
+                                  {q.options.length} вар.
+                                </span>
+                              ) : q.type === "SHORT_ANSWER" ? (
+                                <span className="text-[10px] text-text-muted">
+                                  {q.acceptedAnswers?.length || 1} вар. ответа
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-text-muted">
+                                  {q.testCases?.length || 0} тестов
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -985,23 +1265,67 @@ export function StudioTopicDrawer({
 
                       {/* Expanded details */}
                       {isExpanded && (
-                        <div className="mt-3 pt-3 border-t border-border-subtle space-y-1.5 text-[11px]">
-                          {q.options.map((opt, oIdx) => {
-                            const isCorrect = q.correctIndexes.includes(oIdx);
-                            return (
-                              <div
-                                key={oIdx}
-                                className={`px-2 py-1 rounded flex items-center justify-between ${
-                                  isCorrect
-                                    ? "bg-status-completed/10 text-status-completed font-medium"
-                                    : "text-text-secondary"
-                                }`}
-                              >
-                                <span>{opt.text}</span>
-                                {isCorrect && <Check className="w-3 h-3 shrink-0" />}
+                        <div className="mt-3 pt-3 border-t border-border-subtle space-y-2 text-[11px]">
+                          {(q.type === "SINGLE_CHOICE" || q.type === "MULTIPLE_CHOICE") && (
+                            <div className="space-y-1">
+                              {q.options.map((opt, oIdx) => {
+                                const isCorrect = q.correctIndexes.includes(oIdx);
+                                return (
+                                  <div
+                                    key={oIdx}
+                                    className={`px-2 py-1 rounded flex items-center justify-between ${
+                                      isCorrect
+                                        ? "bg-status-completed/10 text-status-completed font-medium"
+                                        : "text-text-secondary"
+                                    }`}
+                                  >
+                                    <span>{opt.text}</span>
+                                    {isCorrect && <Check className="w-3 h-3 shrink-0" />}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          {q.type === "SHORT_ANSWER" && (
+                            <div className="space-y-1">
+                              <span className="text-text-muted font-semibold">
+                                Допустимые ответы:
+                              </span>
+                              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                                {(q.acceptedAnswers ?? []).map((ans, i) => (
+                                  <Badge key={i} size="sm" variant="outline">
+                                    {ans}
+                                  </Badge>
+                                ))}
                               </div>
-                            );
-                          })}
+                            </div>
+                          )}
+
+                          {q.type === "CODE" && (
+                            <div className="space-y-1">
+                              <span className="text-text-muted font-semibold">
+                                Тест-кейсы ({q.testCases?.length || 0}):
+                              </span>
+                              <div className="space-y-1 pt-0.5">
+                                {(q.testCases ?? []).map((tc: any, i: number) => (
+                                  <div
+                                    key={i}
+                                    className="p-1.5 rounded bg-surface-canvas font-mono text-[10px]"
+                                  >
+                                    <span className="font-sans font-semibold text-text-primary">
+                                      {tc.name || `Тест #${i + 1}`}:{" "}
+                                    </span>
+                                    <span className="text-text-muted">
+                                      Вход: {JSON.stringify(tc.input)}, Ожидается:{" "}
+                                      {JSON.stringify(tc.expected)}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
                           {q.explanation && (
                             <p className="text-[10px] text-text-muted italic pt-1">
                               Пояснение: {q.explanation}

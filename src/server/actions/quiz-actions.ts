@@ -8,10 +8,18 @@ import { evaluateQuizSubmission, type QuizResultDTO } from "@/modules/quiz";
 import { enrollTopicIntoReviewQueue } from "@/modules/spaced-repetition/services/spaced-card-service";
 import { createSafeAction, ActionException } from "./safe-action";
 
+export const quizAnswerItemSchema = z.object({
+  questionId: z.string().min(1, "ID вопроса обязателен"),
+  answer: z.unknown(),
+});
+
 export const submitQuizSchema = z.object({
   courseSlug: z.string().min(1, "Слаг курса обязателен"),
   topicSlug: z.string().min(1, "Слаг темы обязателен"),
-  answers: z.record(z.string(), z.array(z.string())),
+  answers: z.union([
+    z.array(quizAnswerItemSchema),
+    z.record(z.string(), z.unknown()),
+  ]),
 });
 
 export type SubmitQuizInput = z.infer<typeof submitQuizSchema>;
@@ -82,7 +90,7 @@ export const submitQuizAction = createSafeAction(
           data: {
             userId: user.id,
             questionId: item.questionId,
-            selectedAnswer: item.selectedOptionIds,
+            selectedAnswer: (item.selectedAnswer ?? item.selectedOptionIds) as any,
             isCorrect: item.isCorrect,
             gradedAt: now,
           },

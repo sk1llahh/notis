@@ -21,7 +21,7 @@ export function QuizContainer({
   onSuccess,
 }: QuizContainerProps) {
   const [currentStep, setCurrentStep] = useState<number>(0);
-  const [answers, setAnswers] = useState<Record<string, string[]>>({});
+  const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [result, setResult] = useState<QuizResultDTO | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -38,35 +38,16 @@ export function QuizContainer({
   const isFirst = currentStep === 0;
   const isLast = currentStep === questions.length - 1;
 
-  const handleToggleOption = (optionId: string) => {
+  const handleAnswerChange = (val: unknown) => {
     if (!currentQuestion) return;
-
-    setAnswers((prev) => {
-      const currentSelected = prev[currentQuestion.id] ?? [];
-
-      if (currentQuestion.type === "SINGLE_CHOICE") {
-        return {
-          ...prev,
-          [currentQuestion.id]: [optionId],
-        };
-      }
-
-      // MULTIPLE_CHOICE
-      const exists = currentSelected.includes(optionId);
-      const updated = exists
-        ? currentSelected.filter((id) => id !== optionId)
-        : [...currentSelected, optionId];
-
-      return {
-        ...prev,
-        [currentQuestion.id]: updated,
-      };
-    });
+    setAnswers((prev) => ({
+      ...prev,
+      [currentQuestion.id]: val,
+    }));
   };
 
   const handleNext = () => {
     if (isLast) {
-      // Submit
       handleSubmit();
     } else {
       setCurrentStep((prev) => prev + 1);
@@ -83,10 +64,17 @@ export function QuizContainer({
     setErrorMessage(null);
 
     startTransition(async () => {
+      const polymorphicAnswers = Object.entries(answers).map(
+        ([questionId, answer]) => ({
+          questionId,
+          answer,
+        })
+      );
+
       const res = await submitQuizAction({
         courseSlug,
         topicSlug,
-        answers,
+        answers: polymorphicAnswers,
       });
 
       if (!res.success) {
@@ -129,8 +117,8 @@ export function QuizContainer({
 
       <QuizCard
         question={currentQuestion}
-        selectedOptionIds={answers[currentQuestion.id] ?? []}
-        onToggleOption={handleToggleOption}
+        answer={answers[currentQuestion.id]}
+        onAnswerChange={handleAnswerChange}
         onNext={handleNext}
         onPrev={handlePrev}
         isFirst={isFirst}

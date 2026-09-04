@@ -175,6 +175,23 @@ export function QuizResultView({
                 </CardHeader>
 
                 <CardContent className="p-0 pt-2 space-y-2 text-xs">
+                  {/* Student's answer if SHORT_ANSWER or CODE */}
+                  {questionDef?.type === "SHORT_ANSWER" ? (
+                    <div className="p-2 rounded bg-surface-canvas border border-border-subtle text-xs">
+                      <span className="text-text-muted">Ваш ответ: </span>
+                      <span className="font-medium text-text-primary">
+                        {String(item.selectedAnswer ?? item.selectedOptionIds?.[0] ?? "—")}
+                      </span>
+                    </div>
+                  ) : null}
+
+                  {questionDef?.type === "CODE" && item.selectedAnswer ? (
+                    <div className="p-2.5 rounded bg-surface-canvas border border-border-subtle font-mono text-xs overflow-x-auto">
+                      <span className="text-text-muted block mb-1 font-sans text-[11px]">Ваше решение:</span>
+                      <code>{String(item.selectedAnswer ?? item.selectedOptionIds?.[0] ?? "")}</code>
+                    </div>
+                  ) : null}
+
                   {/* Explanation if provided */}
                   {item.explanation && (
                     <div className="p-2.5 rounded bg-surface-elevated text-text-secondary leading-relaxed border border-border-subtle">
