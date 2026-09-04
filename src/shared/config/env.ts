@@ -17,6 +17,14 @@ export const env = createEnv({
       .enum(["development", "test", "production"])
       .default("development"),
     DATABASE_URL: z.string().url(),
+    AUTH_SECRET: z
+      .string()
+      .min(32, "AUTH_SECRET must be at least 32 characters long")
+      .default("notis_auth_secret_development_key_32_characters_minimum"),
+    GITHUB_CLIENT_ID: z.string().optional(),
+    GITHUB_CLIENT_SECRET: z.string().optional(),
+    GOOGLE_CLIENT_ID: z.string().optional(),
+    GOOGLE_CLIENT_SECRET: z.string().optional(),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),

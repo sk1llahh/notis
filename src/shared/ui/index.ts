@@ -33,3 +33,7 @@ export {
 
 // Drawer
 export { Drawer, type DrawerProps } from "./drawer";
+
+// Input
+export { Input, type InputProps } from "./input";
+

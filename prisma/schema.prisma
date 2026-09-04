@@ -134,10 +134,13 @@ model Locale {
 // -----------------------------------------------------------------------------
 model User {
   id              String    @id @default(cuid())
-  authId          String    @unique
+  authId          String    @default(cuid()) @unique
   email           String    @unique
+  emailVerified   DateTime?
   name            String?
   avatarUrl       String?
+  image           String?
+  passwordHash    String?
   role            Role      @default(USER)
   preferredLocale String    @default("ru")
 
@@ -152,6 +155,8 @@ model User {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
+  accounts        Account[]
+  sessions        Session[]
   collaborations  CourseCollaborator[]
   createdTopics   Topic[]             @relation("TopicCreatedBy")
   editedTopics    Topic[]             @relation("TopicLastEditedBy")
@@ -165,6 +170,50 @@ model User {
   grantsIssued    CourseEnrollment[]  @relation("EnrollmentGrantedBy")
 
   @@index([deletedAt])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
 
 // -----------------------------------------------------------------------------

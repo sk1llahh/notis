@@ -50,4 +50,5 @@ export const ROUTES = {
     `/courses/${courseSlug}/topics/${topicSlug}`,
   PRACTICE: "/practice",
   PROFILE: "/profile",
+  LOGIN: "/login",
 } as const;

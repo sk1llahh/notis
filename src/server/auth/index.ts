@@ -1,6 +1,8 @@
 /**
  * Auth Context & Session Facade.
  */
+export { auth, signIn, signOut, handlers } from "./auth";
+
 export {
   getAuthSession,
   type AuthSession,
@@ -13,4 +15,3 @@ export {
   type AuthorRole,
   type AssertCourseAuthorResult,
 } from "./rbac";
-
