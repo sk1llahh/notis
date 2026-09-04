@@ -21,11 +21,13 @@ import {
 import { TopicNode, TopicEdge, type TopicNodePayload, type TopicDifficulty } from "@/modules/roadmap";
 import { StudioTopicDrawer } from "./studio-topic-drawer";
 import { CourseSettingsModal } from "./CourseSettingsModal";
+import { CourseTiersModal } from "./CourseTiersModal";
 import {
   updateNodePositionsAction,
   connectPrerequisiteAction,
   disconnectPrerequisiteAction,
   createTopicAction,
+  type CourseTierDTO,
 } from "@/server/actions";
 import { Badge, Button, Input } from "@/shared/ui";
 import { ROUTES } from "@/shared/config";
@@ -40,6 +42,7 @@ import {
   Plus,
   X,
   Settings,
+  Layers,
 } from "lucide-react";
 import type { StudioGraphDTO, SyncStatus, ConnectionType } from "../types";
 
@@ -81,6 +84,10 @@ function StudioCanvasInner({ initialData }: StudioCanvasProps) {
   const [courseDescription, setCourseDescription] = useState(course.description ?? "");
   const [coursePublished, setCoursePublished] = useState(course.isPublished ?? false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+
+  // Course tiers state
+  const [isTiersModalOpen, setIsTiersModalOpen] = useState(false);
+  const [tiers, setTiers] = useState(initialData.tiers ?? []);
 
   // New topic modal state
   const [isNewTopicModalOpen, setIsNewTopicModalOpen] = useState(false);
@@ -208,6 +215,13 @@ function StudioCanvasInner({ initialData }: StudioCanvasProps) {
       difficulty: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "EXPERT";
       isPublished: boolean;
       version: number;
+      tier?: {
+        id: string;
+        slug: string;
+        title: string;
+        badgeColor: string;
+        order: number;
+      };
     }) => {
       setNodes((currentNodes) =>
         currentNodes.map((n) => {
@@ -218,9 +232,53 @@ function StudioCanvasInner({ initialData }: StudioCanvasProps) {
                 ...n.data,
                 title: updated.title,
                 difficulty: updated.difficulty,
+                tier: updated.tier ?? n.data.tier,
+                tierName: updated.tier?.title ?? n.data.tierName,
+                tierLevel: updated.tier?.order ?? n.data.tierLevel,
                 progress: {
                   ...n.data.progress,
                   currentVersion: updated.version,
+                },
+              },
+            };
+          }
+          return n;
+        })
+      );
+    },
+    [setNodes]
+  );
+
+  // Handle tier changes from CourseTiersModal
+  const handleTiersUpdated = useCallback(
+    (updatedTiers: CourseTierDTO[]) => {
+      setTiers(
+        updatedTiers.map((t) => ({
+          id: t.id,
+          slug: t.slug,
+          title: t.title,
+          order: t.level,
+          badgeColor: t.badgeColor,
+          topicsCount: t.topicsCount,
+        }))
+      );
+
+      const tierMap = new Map(updatedTiers.map((t) => [t.id, t]));
+      setNodes((currentNodes) =>
+        currentNodes.map((n) => {
+          const matched = tierMap.get(n.data.tier.id);
+          if (matched) {
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                tierName: matched.title,
+                tierLevel: matched.level,
+                tier: {
+                  ...n.data.tier,
+                  title: matched.title,
+                  badgeColor: matched.badgeColor,
+                  order: matched.level,
                 },
               },
             };
@@ -481,6 +539,16 @@ function StudioCanvasInner({ initialData }: StudioCanvasProps) {
           <Button
             variant="secondary"
             size="sm"
+            leftIcon={<Layers className="w-3.5 h-3.5" />}
+            onClick={() => setIsTiersModalOpen(true)}
+            title="Уровни и модули курса"
+          >
+            Уровни
+          </Button>
+
+          <Button
+            variant="secondary"
+            size="sm"
             leftIcon={<Settings className="w-3.5 h-3.5" />}
             onClick={() => setIsSettingsModalOpen(true)}
             title="Настройки курса"
@@ -628,8 +696,30 @@ function StudioCanvasInner({ initialData }: StudioCanvasProps) {
         onClose={() => setIsDrawerOpen(false)}
         courseSlug={course.slug}
         topicId={selectedTopicId}
+        availableTiers={tiers.map((t) => ({
+          id: t.id,
+          title: t.title,
+          level: t.order,
+          badgeColor: t.badgeColor,
+        }))}
         onTopicUpdated={handleTopicUpdated}
         onTopicDeleted={handleTopicDeleted}
+      />
+
+      {/* Course Tiers Modal */}
+      <CourseTiersModal
+        isOpen={isTiersModalOpen}
+        onClose={() => setIsTiersModalOpen(false)}
+        courseSlug={course.slug}
+        initialTiers={tiers.map((t) => ({
+          id: t.id,
+          slug: t.slug,
+          title: t.title,
+          level: t.order,
+          badgeColor: t.badgeColor,
+          topicsCount: t.topicsCount,
+        }))}
+        onTiersUpdated={handleTiersUpdated}
       />
 
       {/* Course Settings Modal */}

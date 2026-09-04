@@ -9,6 +9,7 @@ import {
   deleteQuizQuestionAction,
   publishTopicAction,
   deleteTopicAction,
+  assignTopicTierAction,
 } from "@/server/actions";
 import {
   FileText,
@@ -36,12 +37,25 @@ export interface StudioTopicDrawerProps {
   onClose: () => void;
   courseSlug: string;
   topicId: string | null;
+  availableTiers?: Array<{
+    id: string;
+    title: string;
+    level: number;
+    badgeColor?: string;
+  }>;
   onTopicUpdated?: (topic: {
     id: string;
     title: string;
     difficulty: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "EXPERT";
     isPublished: boolean;
     version: number;
+    tier?: {
+      id: string;
+      slug: string;
+      title: string;
+      badgeColor: string;
+      order: number;
+    };
   }) => void;
   onTopicDeleted?: (topicId: string) => void;
 }
@@ -51,12 +65,14 @@ export function StudioTopicDrawer({
   onClose,
   courseSlug,
   topicId,
+  availableTiers = [],
   onTopicUpdated,
   onTopicDeleted,
 }: StudioTopicDrawerProps) {
   const [activeTab, setActiveTab] = useState<StudioTab>("content");
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [topicDetails, setTopicDetails] = useState<TopicStudioDetailsDTO | null>(null);
+  const [selectedTierId, setSelectedTierId] = useState<string>("");
   const [loadError, setLoadError] = useState<string | null>(null);
 
   // Content form state
@@ -125,6 +141,7 @@ export function StudioTopicDrawer({
           setQuestions(d.questions);
           setIsPublished(d.isPublished);
           setVersion(d.version);
+          setSelectedTierId(d.tierId ?? "");
         } else {
           setLoadError(res.error.message);
         }
@@ -159,6 +176,45 @@ export function StudioTopicDrawer({
       });
 
       if (res.success) {
+        let tierPayload: {
+          id: string;
+          slug: string;
+          title: string;
+          badgeColor: string;
+          order: number;
+        } | undefined;
+
+        if (selectedTierId !== topicDetails?.tierId) {
+          const tierRes = await assignTopicTierAction({
+            courseSlug,
+            topicId,
+            tierId: selectedTierId || null,
+          });
+          if (tierRes.success) {
+            const matched = availableTiers.find((t) => t.id === tierRes.data.tierId);
+            if (matched) {
+              tierPayload = {
+                id: matched.id,
+                slug: `tier-${matched.level}`,
+                title: matched.title,
+                badgeColor: matched.badgeColor ?? "#10b981",
+                order: matched.level,
+              };
+            }
+          }
+        } else if (selectedTierId) {
+          const matched = availableTiers.find((t) => t.id === selectedTierId);
+          if (matched) {
+            tierPayload = {
+              id: matched.id,
+              slug: `tier-${matched.level}`,
+              title: matched.title,
+              badgeColor: matched.badgeColor ?? "#10b981",
+              order: matched.level,
+            };
+          }
+        }
+
         setContentStatus("Сохранено");
         onTopicUpdated?.({
           id: topicId,
@@ -166,6 +222,7 @@ export function StudioTopicDrawer({
           difficulty,
           isPublished,
           version,
+          tier: tierPayload,
         });
         setTimeout(() => setContentStatus(null), 2500);
       } else {
@@ -512,6 +569,25 @@ export function StudioTopicDrawer({
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Tier Selection */}
+              <div>
+                <label className="block text-[11px] font-semibold text-text-secondary mb-1.5">
+                  Уровень курса (Tier)
+                </label>
+                <select
+                  value={selectedTierId}
+                  onChange={(e) => setSelectedTierId(e.target.value)}
+                  className="w-full bg-surface-canvas border border-border-subtle rounded-md px-3 py-2 text-text-primary text-xs focus:outline-none focus:border-border-focus"
+                >
+                  <option value="">Без тира (Основной уровень)</option>
+                  {availableTiers.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      T{t.level}: {t.title}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Key Points */}

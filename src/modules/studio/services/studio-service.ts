@@ -130,6 +130,9 @@ export async function getCourseStudioGraph(
       defaultPosMap.get(topic.id) ??
       fallbackPositions[topic.id] ?? { x: 0, y: 0 };
 
+    const tierTitle = tierTrans?.name ?? tierTrans?.title ?? tier?.slug ?? "Tier";
+    const tierOrder = tier?.order ?? 1;
+
     return {
       id: topic.id,
       type: "topicNode",
@@ -140,12 +143,14 @@ export async function getCourseStudioGraph(
         difficulty: topic.difficulty,
         status: "AVAILABLE",
         isFreePreview: topic.isFreePreview,
+        tierName: tierTitle,
+        tierLevel: tierOrder,
         tier: {
           id: tier?.id ?? topic.tierId,
           slug: tier?.slug ?? "default-tier",
-          title: tierTrans?.name ?? tierTrans?.title ?? tier?.slug ?? "Tier",
+          title: tierTitle,
           badgeColor: tier?.badgeColor ?? "#10b981",
-          order: tier?.order ?? 1,
+          order: tierOrder,
         },
         progress: {
           completedVersion: null,
@@ -180,6 +185,23 @@ export async function getCourseStudioGraph(
     }
   }
 
+  const tiers = courseRecord.tiers.map((t) => {
+    const tTrans = resolveTranslation(
+      t.translations.map((tr) => ({ locale: tr.locale, name: tr.name })),
+      courseLocale,
+      courseRecord.defaultLocale
+    );
+    const topicsCount = courseRecord.topics.filter((top) => top.tierId === t.id).length;
+    return {
+      id: t.id,
+      slug: t.slug,
+      title: tTrans?.name ?? t.slug,
+      badgeColor: t.badgeColor,
+      order: t.order,
+      topicsCount,
+    };
+  });
+
   return {
     course: {
       id: courseRecord.id,
@@ -189,6 +211,7 @@ export async function getCourseStudioGraph(
       isPublished: courseRecord.isPublished,
       learningMode: courseRecord.learningMode,
     },
+    tiers,
     nodes,
     edges,
   };
@@ -273,6 +296,7 @@ export async function getTopicStudioDetails(
     version: topic.version,
     isPublished: topic.isPublished,
     isFreePreview: topic.isFreePreview,
+    tierId: topic.tierId,
     title: topicTrans?.title ?? topic.slug,
     summary: topicTrans?.summary ?? "",
     keyPoints: topicTrans?.keyPoints ?? [],

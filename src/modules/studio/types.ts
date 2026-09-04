@@ -4,6 +4,15 @@ import type { TopicNodePayload } from "@/modules/roadmap";
 export type StudioNode = Node<TopicNodePayload, "topicNode">;
 export type StudioEdge = Edge;
 
+export interface StudioGraphTierDTO {
+  id: string;
+  slug: string;
+  title: string;
+  badgeColor: string;
+  order: number;
+  topicsCount?: number;
+}
+
 export interface StudioGraphDTO {
   course: {
     id: string;
@@ -13,6 +22,7 @@ export interface StudioGraphDTO {
     isPublished?: boolean;
     learningMode: string;
   };
+  tiers?: StudioGraphTierDTO[];
   nodes: StudioNode[];
   edges: StudioEdge[];
 }
@@ -42,6 +52,7 @@ export interface TopicStudioDetailsDTO {
   version: number;
   isPublished: boolean;
   isFreePreview: boolean;
+  tierId?: string;
   title: string;
   summary: string;
   keyPoints: string[];

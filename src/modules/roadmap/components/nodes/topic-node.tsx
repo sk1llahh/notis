@@ -25,11 +25,14 @@ export const TopicNode = memo(function TopicNode({
   const selectedTopicId = useRoadmapStore((state) => state.selectedTopicId);
   const isSelected = selected || selectedTopicId === id || selectedTopicId === data.slug;
 
-  const { status, title, difficulty, tier, isFreePreview, progress } = data;
+  const { status, title, difficulty, tier, tierName, tierLevel, isFreePreview, progress } = data;
 
   const handleClick = () => {
     selectTopic(id);
   };
+
+  const displayTierTitle = tierName ?? tier.title;
+  const displayTierLevel = tierLevel ?? tier.order;
 
   // Status visual variants adhering to design tokens
   const statusConfig = {
@@ -99,11 +102,13 @@ export const TopicNode = memo(function TopicNode({
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-1.5 min-w-0">
           <span
-            className="w-2 h-2 rounded-full shrink-0"
+            className="w-2 h-2 rounded-full shrink-0 shadow-xs"
             style={{ backgroundColor: tier.badgeColor }}
           />
-          <span className="text-[11px] font-medium tracking-wide uppercase text-text-muted truncate">
-            {tier.title}
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wider uppercase bg-surface-elevated border border-border-subtle text-text-muted truncate">
+            <span className="text-text-primary">T{displayTierLevel}</span>
+            <span className="text-border-subtle">|</span>
+            <span className="truncate">{displayTierTitle}</span>
           </span>
         </div>
 

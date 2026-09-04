@@ -147,5 +147,21 @@ export {
   type ResetCourseProgressOutput,
 } from "./course-enrollment-actions";
 
-
-
+export {
+  createCourseTierAction,
+  createCourseTierSchema,
+  type CreateCourseTierInput,
+  updateCourseTierAction,
+  updateCourseTierSchema,
+  type UpdateCourseTierInput,
+  deleteCourseTierAction,
+  deleteCourseTierSchema,
+  type DeleteCourseTierInput,
+  assignTopicTierAction,
+  assignTopicTierSchema,
+  type AssignTopicTierInput,
+  getCourseTiersAction,
+  getCourseTiersSchema,
+  type GetCourseTiersInput,
+  type CourseTierDTO,
+} from "./admin-tier-actions";

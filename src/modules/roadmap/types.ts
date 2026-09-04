@@ -16,6 +16,8 @@ export interface TopicNodePayload extends Record<string, unknown> {
   difficulty: TopicDifficulty;
   status: TopicNodeStatus;
   isFreePreview: boolean;
+  tierName?: string;
+  tierLevel?: number;
   tier: {
     id: string;
     slug: string;

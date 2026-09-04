@@ -143,18 +143,23 @@ export function transformCourseToGraphDTO(
       defaultPosMap.get(topic.id) ??
       fallbackPositions[topic.id] ?? { x: 0, y: 0 };
 
+    const tierTitle = tierTrans?.name ?? tierTrans?.title ?? tier?.slug ?? "Tier";
+    const tierOrder = tier?.order ?? 1;
+
     const payload: TopicNodePayload = {
       slug: topic.slug,
       title: topicTrans.title ?? topic.slug,
       difficulty: topic.difficulty,
       status,
       isFreePreview: topic.isFreePreview,
+      tierName: tierTitle,
+      tierLevel: tierOrder,
       tier: {
         id: tier?.id ?? topic.tierId,
         slug: tier?.slug ?? "default-tier",
-        title: tierTrans?.name ?? tierTrans?.title ?? tier?.slug ?? "Tier",
+        title: tierTitle,
         badgeColor: tier?.badgeColor ?? "#10b981",
-        order: tier?.order ?? 1,
+        order: tierOrder,
       },
       progress: {
         completedVersion: progress?.completedVersion ?? null,
