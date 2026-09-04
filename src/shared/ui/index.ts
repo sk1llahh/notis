@@ -37,3 +37,11 @@ export { Drawer, type DrawerProps } from "./drawer";
 // Input
 export { Input, type InputProps } from "./input";
 
+// Navbar
+export {
+  Navbar,
+  NavbarClient,
+  type NavbarProps,
+  type NavbarClientProps,
+} from "./navbar";
+

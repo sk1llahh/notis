@@ -1,6 +1,6 @@
 import { prisma } from "@/server/db";
 import { calculateUserLevel } from "./level-progression";
-import { calculateStreakStatus } from "./streak-calculator";
+import { calculateStreakStatus, type StreakStatus } from "./streak-calculator";
 import type {
   UserProfileDTO,
   UserStatsDTO,
@@ -204,3 +204,30 @@ export async function getUserProfileData(
     courses,
   };
 }
+
+/**
+ * Lightweight query for fetching the current user's streak status.
+ * Used in global Navbar and widgets without fetching full 90-day heatmap.
+ */
+export async function getUserStreak(userId: string): Promise<StreakStatus> {
+  const user = await prisma.user.findFirst({
+    where: {
+      OR: [{ id: userId }, { authId: userId }],
+    },
+    select: {
+      lastStudyAt: true,
+      streakDays: true,
+    },
+  });
+
+  if (!user) {
+    return {
+      streak: 0,
+      isActiveToday: false,
+      isExpiringSoon: false,
+    };
+  }
+
+  return calculateStreakStatus(user.lastStudyAt, user.streakDays);
+}
+

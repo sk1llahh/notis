@@ -9,15 +9,7 @@ import {
 import { Card, Button, Badge } from "@/shared/ui";
 import { ROUTES } from "@/shared/config";
 import { CreateCourseModal } from "./CreateCourseModal";
-import {
-  Compass,
-  GraduationCap,
-  Brain,
-  LogIn,
-  User,
-  BookOpen,
-  SearchX,
-} from "lucide-react";
+import { Compass, SearchX } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -44,91 +36,37 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
     difficulty: params.difficulty,
   });
 
-  const isAuthenticated = Boolean(session?.user);
   const canCreateCourse =
     session?.user?.role === "ADMIN" || session?.user?.role === "AUTHOR";
 
   return (
     <main className="w-full min-h-screen bg-surface-canvas text-text-primary flex flex-col">
-      {/* Sticky Top Navigation Bar */}
-      <header className="w-full border-b border-border-subtle bg-surface-canvas/80 backdrop-blur-md sticky top-0 z-30 px-4 sm:px-8 py-3.5">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link
-              href={ROUTES.HOME}
-              className="flex items-center gap-2 hover:opacity-90 transition-opacity"
-            >
-              <div className="w-8 h-8 rounded-lg bg-status-available/10 border border-status-available/30 flex items-center justify-center text-status-available">
-                <GraduationCap className="w-4 h-4" />
-              </div>
-              <span className="text-base font-bold tracking-tight text-text-primary">
-                Notis
-              </span>
-            </Link>
-
-            <span className="text-border-strong hidden sm:inline">/</span>
-
-            <h1 className="text-sm font-semibold text-text-secondary hidden sm:inline">
-              Каталог курсов
-            </h1>
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            {canCreateCourse && <CreateCourseModal />}
-
-            <Link href={ROUTES.PRACTICE}>
-              <Button
-                size="sm"
-                variant="ghost"
-                leftIcon={<Brain className="w-4 h-4" />}
-              >
-                Тренажер
-              </Button>
-            </Link>
-
-            {isAuthenticated ? (
-              <Link href={ROUTES.PROFILE}>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  leftIcon={<User className="w-4 h-4" />}
-                >
-                  Личный кабинет
-                </Button>
-              </Link>
-            ) : (
-              <Link href={ROUTES.LOGIN}>
-                <Button
-                  size="sm"
-                  variant="primary"
-                  leftIcon={<LogIn className="w-4 h-4" />}
-                >
-                  Войти
-                </Button>
-              </Link>
-            )}
-          </div>
-        </div>
-      </header>
-
       {/* Main Catalog Content */}
       <div className="w-full max-w-6xl mx-auto flex-1 p-4 sm:p-8 flex flex-col gap-8">
         {/* Hero Section */}
-        <div className="flex flex-col gap-2.5">
-          <div className="flex items-center gap-2">
-            <Badge variant="available" size="sm">
-              <Compass className="w-3 h-3" />
-              Интерактивные Роадмапы
-            </Badge>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex flex-col gap-2.5">
+            <div className="flex items-center gap-2">
+              <Badge variant="available" size="sm">
+                <Compass className="w-3 h-3" />
+                Интерактивные Роадмапы
+              </Badge>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-text-primary">
+              Каталог курсов
+            </h1>
+            <p className="text-xs sm:text-sm text-text-secondary max-w-2xl leading-relaxed">
+              Изучайте фундаментальные концепции разработки через интерактивные
+              графы знаний. Прогресс открывается шаг за шагом по механике Fog of
+              War.
+            </p>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-text-primary">
-            Каталог курсов
-          </h2>
-          <p className="text-xs sm:text-sm text-text-secondary max-w-2xl leading-relaxed">
-            Изучайте фундаментальные концепции разработки через интерактивные
-            графы знаний. Прогресс открывается шаг за шагом по механике Fog of
-            War.
-          </p>
+
+          {canCreateCourse && (
+            <div className="shrink-0">
+              <CreateCourseModal />
+            </div>
+          )}
         </div>
 
         {/* Filter & Search Bar */}

@@ -22,7 +22,7 @@ export {
 } from "./services/streak-calculator";
 
 // Profile Service
-export { getUserProfileData } from "./services/profile-service";
+export { getUserProfileData, getUserStreak } from "./services/profile-service";
 
 // UI Components
 export { ProfileHeader, type ProfileHeaderProps } from "./components/ProfileHeader";

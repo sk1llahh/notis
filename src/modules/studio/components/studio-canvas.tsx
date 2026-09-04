@@ -371,7 +371,7 @@ function StudioCanvasInner({ initialData }: StudioCanvasProps) {
   );
 
   return (
-    <div className="relative w-full h-[calc(100vh-64px)] bg-surface-canvas overflow-hidden select-none">
+    <div className="relative w-full h-full bg-surface-canvas overflow-hidden select-none">
       {/* Top Floating Studio Toolbar */}
       <div className="absolute top-4 left-4 right-4 sm:right-auto z-10 flex flex-wrap items-center justify-between gap-4 p-3 rounded-lg bg-surface-card/90 border border-border-subtle backdrop-blur-xl shadow-2xl">
         {/* Left segment: Title & Studio Badge */}

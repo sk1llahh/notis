@@ -5,9 +5,6 @@ import {
   Brain,
   Shield,
   ArrowRight,
-  BookOpen,
-  User,
-  GraduationCap,
 } from "lucide-react";
 import {
   Badge,
@@ -18,55 +15,13 @@ import {
   CardDescription,
 } from "@/shared/ui";
 import { ROUTES } from "@/shared/config";
-import { getAuthSession } from "@/server/auth";
 
-export default async function Home() {
-  const session = await getAuthSession();
-  const isAuthenticated = Boolean(session?.user);
-
+export default function Home() {
   return (
-    <div className="min-h-screen bg-surface-canvas text-text-primary flex flex-col items-center justify-between p-4 sm:p-6 relative overflow-hidden">
+    <div className="flex-1 w-full bg-surface-canvas text-text-primary flex flex-col items-center justify-between p-4 sm:p-6 relative overflow-hidden">
       {/* Background subtle glow accents */}
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-status-available/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-status-completed/10 rounded-full blur-3xl pointer-events-none" />
-
-      {/* Top Header */}
-      <header className="w-full max-w-5xl flex items-center justify-between py-4 z-10">
-        <Link href={ROUTES.HOME} className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-status-available/10 border border-status-available/30 flex items-center justify-center text-status-available">
-            <GraduationCap className="w-4 h-4" />
-          </div>
-          <span className="text-base font-bold tracking-tight text-text-primary">
-            Notis
-          </span>
-        </Link>
-
-        <div className="flex items-center gap-2 sm:gap-3">
-          <Link href={ROUTES.COURSES}>
-            <Button size="sm" variant="ghost" leftIcon={<BookOpen className="w-4 h-4" />}>
-              Курсы
-            </Button>
-          </Link>
-          <Link href={ROUTES.PRACTICE}>
-            <Button size="sm" variant="ghost" leftIcon={<Brain className="w-4 h-4" />}>
-              Тренажер
-            </Button>
-          </Link>
-          {isAuthenticated ? (
-            <Link href={ROUTES.PROFILE}>
-              <Button size="sm" variant="secondary" leftIcon={<User className="w-4 h-4" />}>
-                Личный кабинет
-              </Button>
-            </Link>
-          ) : (
-            <Link href={ROUTES.LOGIN}>
-              <Button size="sm" variant="primary">
-                Войти
-              </Button>
-            </Link>
-          )}
-        </div>
-      </header>
 
       {/* Hero Section */}
       <main className="w-full max-w-4xl flex flex-col items-center text-center space-y-8 my-auto py-12 z-10">
