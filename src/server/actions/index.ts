@@ -19,7 +19,7 @@ export {
   completeTopicSchema,
   type CompleteTopicInput,
   type CompleteTopicOutput,
-} from "./progress-actions";
+} from "./topic-actions";
 
 export {
   submitQuizAction,

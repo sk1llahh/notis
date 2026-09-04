@@ -68,12 +68,12 @@ export function TopicFooterAction({
               ) : isCompleted ? (
                 <>
                   <CheckCircle2 className="w-5 h-5 text-status-completed" />
-                  <span>Тема завершена (+XP получено)</span>
+                  <span>{hasQuiz ? "Тема завершена (+XP получено)" : "Материал освоен"}</span>
                 </>
               ) : (
                 <>
                   <Zap className="w-5 h-5 text-status-available" />
-                  <span>Готовы закрепить знания?</span>
+                  <span>{hasQuiz ? "Готовы закрепить знания?" : "Материал изучен?"}</span>
                 </>
               )}
             </h4>
@@ -81,39 +81,46 @@ export function TopicFooterAction({
               {successInfo
                 ? "Прогресс зафиксирован. Возвращаемся в роадмап..."
                 : isCompleted
-                ? "Материал темы успешно пройден. Вы можете пересдать тест для повторения и закрепления без повторного начисления XP."
-                : "Пройдите интерактивный тест для закрепления темы или подтвердите освоение материала."}
+                ? hasQuiz
+                  ? "Материал темы успешно пройден. Вы можете пересдать тест для повторения и закрепления без повторного начисления XP."
+                  : "Вы уже освоили материал этой темы."
+                : hasQuiz
+                ? "Пройдите интерактивный тест для закрепления темы или подтвердите освоение материала."
+                : "В этой теме нет тестирования. Подтвердите изучение материала для завершения темы и начисления опыта."}
             </p>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-            {hasQuiz && (
+            {hasQuiz ? (
               <Button
                 onClick={() => setIsQuizOpen(true)}
-                variant="secondary"
+                variant="primary"
                 size="lg"
                 className="w-full sm:w-auto"
-                leftIcon={<GraduationCap className="w-5 h-5 text-status-available" />}
+                leftIcon={<GraduationCap className="w-5 h-5" />}
               >
-                {isCompleted ? `Пересдать тест для закрепления (${quizQuestions.length})` : `Пройти тест (${quizQuestions.length})`}
+                {isCompleted
+                  ? `Пересдать тест для закрепления (${quizQuestions.length})`
+                  : `Пройти тест (${quizQuestions.length})`}
+              </Button>
+            ) : isCompleted ? (
+              <div className="flex items-center gap-2 px-4 py-2.5 rounded-md bg-status-completed/10 border border-status-completed/30 text-status-completed text-sm font-semibold">
+                <CheckCircle2 className="w-5 h-5" />
+                <span>Материал освоен</span>
+              </div>
+            ) : (
+              <Button
+                onClick={handleComplete}
+                variant="primary"
+                size="lg"
+                isLoading={isPending}
+                disabled={Boolean(successInfo)}
+                className="w-full sm:w-auto min-w-[200px]"
+                rightIcon={<ArrowRight className="w-4 h-4 ml-1" />}
+              >
+                {successInfo ? "Сохранено!" : "Отметить как прочитанное (+50 XP)"}
               </Button>
             )}
-
-            <Button
-              onClick={handleComplete}
-              variant="primary"
-              size="lg"
-              isLoading={isPending}
-              disabled={Boolean(successInfo)}
-              className="w-full sm:w-auto min-w-[180px]"
-              rightIcon={<ArrowRight className="w-4 h-4 ml-1" />}
-            >
-              {successInfo
-                ? "Сохранено!"
-                : isCompleted
-                ? "Освоено повторно"
-                : "Я освоил материал"}
-            </Button>
           </div>
         </div>
 
