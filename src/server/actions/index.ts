@@ -165,3 +165,20 @@ export {
   type GetCourseTiersInput,
   type CourseTierDTO,
 } from "./admin-tier-actions";
+
+export {
+  createFlashcardAction,
+  createFlashcardSchema,
+  type CreateFlashcardInput,
+  updateFlashcardAction,
+  updateFlashcardSchema,
+  type UpdateFlashcardInput,
+  deleteFlashcardAction,
+  deleteFlashcardSchema,
+  type DeleteFlashcardInput,
+  getTopicFlashcardsAction,
+  getTopicFlashcardsSchema,
+  type GetTopicFlashcardsInput,
+  type FlashcardDTO,
+} from "./admin-flashcard-actions";
+

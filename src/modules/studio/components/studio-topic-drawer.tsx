@@ -10,6 +10,7 @@ import {
   publishTopicAction,
   deleteTopicAction,
   assignTopicTierAction,
+  getTopicFlashcardsAction,
 } from "@/server/actions";
 import {
   FileText,
@@ -27,10 +28,12 @@ import {
   CheckSquare,
   Globe,
   EyeOff,
+  BrainCircuit,
 } from "lucide-react";
+import { StudioFlashcardsTab } from "./StudioFlashcardsTab";
 import type { TopicStudioDetailsDTO, StudioQuizQuestionDTO } from "../types";
 
-export type StudioTab = "content" | "quiz" | "status";
+export type StudioTab = "content" | "quiz" | "flashcards" | "status";
 
 export interface StudioTopicDrawerProps {
   isOpen: boolean;
@@ -73,6 +76,7 @@ export function StudioTopicDrawer({
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [topicDetails, setTopicDetails] = useState<TopicStudioDetailsDTO | null>(null);
   const [selectedTierId, setSelectedTierId] = useState<string>("");
+  const [flashcardsCount, setFlashcardsCount] = useState<number>(0);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   // Content form state
@@ -153,6 +157,15 @@ export function StudioTopicDrawer({
       .finally(() => {
         if (isMounted) setIsLoadingDetails(false);
       });
+
+    getTopicFlashcardsAction({ courseSlug, topicId })
+      .then((res) => {
+        if (!isMounted) return;
+        if (res.success && res.data) {
+          setFlashcardsCount(res.data.cards.length);
+        }
+      })
+      .catch(() => {});
 
     return () => {
       isMounted = false;
@@ -462,6 +475,19 @@ export function StudioTopicDrawer({
             >
               <HelpCircle className="w-3.5 h-3.5" />
               Квиз ({questions.length})
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("flashcards")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-medium transition-all duration-150 cursor-pointer ${
+                activeTab === "flashcards"
+                  ? "bg-surface-elevated text-status-available border border-border-strong shadow-sm"
+                  : "text-text-muted hover:text-text-secondary"
+              }`}
+            >
+              <BrainCircuit className="w-3.5 h-3.5" />
+              Карточки SM-2 {flashcardsCount > 0 && `(${flashcardsCount})`}
             </button>
 
             <button
@@ -990,7 +1016,16 @@ export function StudioTopicDrawer({
             </div>
           )}
 
-          {/* TAB 3: STATUS & VERSION */}
+          {/* TAB 3: FLASHCARDS SM-2 */}
+          {activeTab === "flashcards" && topicId && (
+            <StudioFlashcardsTab
+              courseSlug={courseSlug}
+              topicId={topicId}
+              onCountChanged={setFlashcardsCount}
+            />
+          )}
+
+          {/* TAB 4: STATUS & VERSION */}
           {activeTab === "status" && (
             <div className="space-y-6 text-xs">
               {publishStatus && (
