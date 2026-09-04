@@ -115,6 +115,7 @@ export function QuizContainer({
         questions={questions}
         onRetry={handleRetry}
         courseSlug={courseSlug}
+        topicSlug={topicSlug}
       />
     );
   }

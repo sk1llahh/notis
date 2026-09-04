@@ -1,6 +1,11 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { submitQuizSchema, submitQuizAction } from "../quiz-actions";
+import {
+  submitQuizSchema,
+  submitQuizAction,
+  retakeQuizSchema,
+  retakeQuizAction,
+} from "../quiz-actions";
 
 describe("submitQuizAction & Schema Validation", () => {
   test("1. submitQuizSchema parses valid submission parameters", () => {
@@ -51,4 +56,42 @@ describe("submitQuizAction & Schema Validation", () => {
       assert.ok(result.error.fieldErrors);
     }
   });
+
+  describe("retakeQuizSchema & retakeQuizAction", () => {
+    test("4. retakeQuizSchema parses valid payload", () => {
+      const parsed = retakeQuizSchema.safeParse({
+        courseSlug: "cs-foundations",
+        topicSlug: "memory-basics",
+      });
+      assert.equal(parsed.success, true);
+      if (parsed.success) {
+        assert.equal(parsed.data.courseSlug, "cs-foundations");
+        assert.equal(parsed.data.topicSlug, "memory-basics");
+      }
+    });
+
+    test("5. retakeQuizSchema rejects empty or missing slugs", () => {
+      const parsedEmpty = retakeQuizSchema.safeParse({
+        courseSlug: "",
+        topicSlug: "",
+      });
+      assert.equal(parsedEmpty.success, false);
+
+      const parsedMissing = retakeQuizSchema.safeParse({});
+      assert.equal(parsedMissing.success, false);
+    });
+
+    test("6. retakeQuizAction returns BAD_REQUEST on invalid input", async () => {
+      const result = await retakeQuizAction({
+        courseSlug: "",
+        topicSlug: "",
+      });
+      assert.equal(result.success, false);
+      if (!result.success) {
+        assert.equal(result.error.code, "BAD_REQUEST");
+        assert.ok(result.error.fieldErrors);
+      }
+    });
+  });
 });
+

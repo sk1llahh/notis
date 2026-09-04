@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
 import { CheckCircle2, XCircle, Trophy, RotateCcw, ArrowRight, AlertTriangle } from "lucide-react";
@@ -11,6 +13,7 @@ import {
   MarkdownRenderer,
 } from "@/shared/ui";
 import { ROUTES } from "@/shared/config";
+import { retakeQuizAction } from "@/server/actions";
 import type { QuizResultDTO, QuizQuestionDTO } from "../types";
 
 interface QuizResultViewProps {
@@ -18,6 +21,7 @@ interface QuizResultViewProps {
   questions: QuizQuestionDTO[];
   onRetry: () => void;
   courseSlug: string;
+  topicSlug?: string;
 }
 
 export function QuizResultView({
@@ -25,9 +29,26 @@ export function QuizResultView({
   questions,
   onRetry,
   courseSlug,
+  topicSlug,
 }: QuizResultViewProps) {
   const { score, passed, xpEarned, totalQuestions, correctQuestions, breakdown } =
     result;
+  const [isRetaking, startRetake] = React.useTransition();
+
+  const handleRetake = () => {
+    if (!topicSlug) {
+      onRetry();
+      return;
+    }
+
+    startRetake(async () => {
+      await retakeQuizAction({
+        courseSlug,
+        topicSlug,
+      });
+      onRetry();
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -83,18 +104,19 @@ export function QuizResultView({
         {/* Top actions */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
           <Button
-            variant={passed ? "secondary" : "primary"}
+            variant={score < 100 ? "primary" : "outline"}
             size="md"
-            onClick={onRetry}
+            onClick={handleRetake}
+            isLoading={isRetaking}
             leftIcon={<RotateCcw className="w-4 h-4" />}
           >
-            Попробовать снова
+            Пройти квиз заново
           </Button>
 
           {passed && (
             <Link href={ROUTES.COURSE(courseSlug)}>
               <Button
-                variant="primary"
+                variant={score < 100 ? "secondary" : "primary"}
                 size="md"
                 rightIcon={<ArrowRight className="w-4 h-4 ml-1" />}
               >

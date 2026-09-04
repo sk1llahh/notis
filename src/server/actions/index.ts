@@ -25,6 +25,9 @@ export {
   submitQuizAction,
   submitQuizSchema,
   type SubmitQuizInput,
+  retakeQuizAction,
+  retakeQuizSchema,
+  type RetakeQuizInput,
 } from "./quiz-actions";
 
 export {

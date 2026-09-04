@@ -68,7 +68,7 @@ export function TopicFooterAction({
               ) : isCompleted ? (
                 <>
                   <CheckCircle2 className="w-5 h-5 text-status-completed" />
-                  <span>Тема уже завершена</span>
+                  <span>Тема завершена (+XP получено)</span>
                 </>
               ) : (
                 <>
@@ -81,7 +81,7 @@ export function TopicFooterAction({
               {successInfo
                 ? "Прогресс зафиксирован. Возвращаемся в роадмап..."
                 : isCompleted
-                ? "Вы можете повторно подтвердить освоение темы или пройти тест для проверки знаний."
+                ? "Материал темы успешно пройден. Вы можете пересдать тест для повторения и закрепления без повторного начисления XP."
                 : "Пройдите интерактивный тест для закрепления темы или подтвердите освоение материала."}
             </p>
           </div>
@@ -95,7 +95,7 @@ export function TopicFooterAction({
                 className="w-full sm:w-auto"
                 leftIcon={<GraduationCap className="w-5 h-5 text-status-available" />}
               >
-                Пройти тест ({quizQuestions.length})
+                {isCompleted ? `Пересдать тест для закрепления (${quizQuestions.length})` : `Пройти тест (${quizQuestions.length})`}
               </Button>
             )}
 
