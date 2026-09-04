@@ -11,20 +11,22 @@ import {
   BackgroundVariant,
   useNodesState,
   useEdgesState,
+  useReactFlow,
   addEdge,
   type Connection,
   type Node,
   type Edge,
   type OnNodeDrag,
 } from "@xyflow/react";
-import { TopicNode, TopicEdge, type TopicNodePayload } from "@/modules/roadmap";
+import { TopicNode, TopicEdge, type TopicNodePayload, type TopicDifficulty } from "@/modules/roadmap";
 import { StudioTopicDrawer } from "./studio-topic-drawer";
 import {
   updateNodePositionsAction,
   connectPrerequisiteAction,
   disconnectPrerequisiteAction,
+  createTopicAction,
 } from "@/server/actions";
-import { Badge, Button } from "@/shared/ui";
+import { Badge, Button, Input } from "@/shared/ui";
 import { ROUTES } from "@/shared/config";
 import {
   Sparkles,
@@ -34,6 +36,8 @@ import {
   AlertCircle,
   GitBranch,
   ArrowRight,
+  Plus,
+  X,
 } from "lucide-react";
 import type { StudioGraphDTO, SyncStatus, ConnectionType } from "../types";
 
@@ -64,9 +68,123 @@ function StudioCanvasInner({ initialData }: StudioCanvasProps) {
   const [connectionType, setConnectionType] = useState<ConnectionType>("REQUIRED");
   const [, startTransition] = useTransition();
 
+  const { getViewport } = useReactFlow();
+
   // Drawer state
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // New topic modal state
+  const [isNewTopicModalOpen, setIsNewTopicModalOpen] = useState(false);
+  const [newTopicTitle, setNewTopicTitle] = useState("");
+  const [newTopicError, setNewTopicError] = useState<string | null>(null);
+  const [isCreatingTopic, startCreatingTopic] = useTransition();
+
+  // Handle topic creation directly on canvas
+  const handleCreateTopic = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = newTopicTitle.trim();
+    if (!trimmed || trimmed.length < 2) {
+      setNewTopicError("Заголовок темы должен содержать не менее 2 символов");
+      return;
+    }
+
+    startCreatingTopic(async () => {
+      setNewTopicError(null);
+
+      // Compute coordinate near center of current view or offset from last node
+      let posX = 150;
+      let posY = 150;
+      try {
+        const vp = getViewport();
+        if (typeof window !== "undefined" && vp.zoom) {
+          posX = Math.round((-vp.x + window.innerWidth / 2) / vp.zoom - 120);
+          posY = Math.round((-vp.y + window.innerHeight / 2) / vp.zoom - 55);
+        }
+      } catch {
+        if (nodes.length > 0) {
+          const last = nodes[nodes.length - 1];
+          posX = Math.round(last.position.x + 280);
+          posY = Math.round(last.position.y);
+        }
+      }
+
+      const res = await createTopicAction({
+        courseSlug: course.slug,
+        title: trimmed,
+        positionX: posX,
+        positionY: posY,
+      });
+
+      if (!res.success) {
+        setNewTopicError(res.error.message || "Не удалось создать тему");
+        return;
+      }
+
+      const { topic, tier, positionX, positionY } = res.data;
+
+      const newNode: Node<TopicNodePayload> = {
+        id: topic.id,
+        type: "topicNode",
+        position: { x: positionX, y: positionY },
+        data: {
+          slug: topic.slug,
+          title: topic.title,
+          difficulty: topic.difficulty as TopicDifficulty,
+          status: "AVAILABLE",
+          isFreePreview: topic.isFreePreview,
+          tier: {
+            id: tier.id,
+            slug: tier.slug,
+            title: tier.title,
+            badgeColor: tier.badgeColor,
+            order: tier.order,
+          },
+          progress: {
+            completedVersion: null,
+            currentVersion: topic.version,
+            hasUpdate: false,
+          },
+        },
+      };
+
+      setNodes((current) => [...current, newNode]);
+      setIsNewTopicModalOpen(false);
+      setNewTopicTitle("");
+      setSyncStatus("SAVED");
+      setStatusMessage("Тема создана");
+      setTimeout(() => {
+        setSyncStatus((cur) => (cur === "SAVED" ? "IDLE" : cur));
+        setStatusMessage("");
+      }, 2500);
+
+      // Open drawer immediately for newly created topic
+      setSelectedTopicId(topic.id);
+      setIsDrawerOpen(true);
+    });
+  };
+
+  // Handle topic deletion from drawer to reactively remove node & edges without reload
+  const handleTopicDeleted = useCallback(
+    (deletedTopicId: string) => {
+      setNodes((currentNodes) =>
+        currentNodes.filter((n) => n.id !== deletedTopicId)
+      );
+      setEdges((currentEdges) =>
+        currentEdges.filter(
+          (e) => e.source !== deletedTopicId && e.target !== deletedTopicId
+        )
+      );
+      setSelectedTopicId(null);
+      setSyncStatus("SAVED");
+      setStatusMessage("Тема удалена");
+      setTimeout(() => {
+        setSyncStatus((cur) => (cur === "SAVED" ? "IDLE" : cur));
+        setStatusMessage("");
+      }, 2000);
+    },
+    [setNodes, setEdges]
+  );
 
   // Handle node click to open topic editing drawer
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
@@ -330,6 +448,19 @@ function StudioCanvasInner({ initialData }: StudioCanvasProps) {
             )}
           </div>
 
+          <Button
+            variant="primary"
+            size="sm"
+            leftIcon={<Plus className="w-3.5 h-3.5" />}
+            onClick={() => {
+              setNewTopicTitle("");
+              setNewTopicError(null);
+              setIsNewTopicModalOpen(true);
+            }}
+          >
+            Новая тема
+          </Button>
+
           <Link href={ROUTES.COURSE(course.slug)}>
             <Button
               variant="secondary"
@@ -383,6 +514,87 @@ function StudioCanvasInner({ initialData }: StudioCanvasProps) {
         />
       </ReactFlow>
 
+      {/* Modal for creating a new topic directly on canvas */}
+      {isNewTopicModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div
+            className="fixed inset-0"
+            onClick={() => !isCreatingTopic && setIsNewTopicModalOpen(false)}
+            aria-hidden="true"
+          />
+
+          <div className="relative w-full max-w-md rounded-xl border border-border-subtle bg-surface-card p-6 shadow-2xl animate-in zoom-in-95 duration-200 z-10">
+            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-status-available/10 border border-status-available/30 flex items-center justify-center text-status-available">
+                  <Plus className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-text-primary">
+                    Добавить тему на холст
+                  </h3>
+                  <p className="text-[11px] text-text-muted">
+                    Новая тема появится в центре холста
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => !isCreatingTopic && setIsNewTopicModalOpen(false)}
+                className="p-1 text-text-muted hover:text-text-primary rounded cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {newTopicError && (
+              <div className="mt-3 p-2.5 rounded bg-red-500/10 border border-red-500/30 flex items-center gap-2 text-xs text-red-400">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{newTopicError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleCreateTopic} className="mt-4 space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-text-secondary block">
+                  Название темы <span className="text-red-400">*</span>
+                </label>
+                <Input
+                  value={newTopicTitle}
+                  onChange={(e) => setNewTopicTitle(e.target.value)}
+                  placeholder="например, Деревья поиска и AVL"
+                  disabled={isCreatingTopic}
+                  autoFocus
+                  required
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-border-subtle">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsNewTopicModalOpen(false)}
+                  disabled={isCreatingTopic}
+                >
+                  Отмена
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  isLoading={isCreatingTopic}
+                  disabled={isCreatingTopic || !newTopicTitle.trim()}
+                >
+                  Создать тему
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Side Topic Editing Drawer */}
       <StudioTopicDrawer
         isOpen={isDrawerOpen}
@@ -390,6 +602,7 @@ function StudioCanvasInner({ initialData }: StudioCanvasProps) {
         courseSlug={course.slug}
         topicId={selectedTopicId}
         onTopicUpdated={handleTopicUpdated}
+        onTopicDeleted={handleTopicDeleted}
       />
     </div>
   );

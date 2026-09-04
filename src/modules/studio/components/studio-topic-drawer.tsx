@@ -8,6 +8,7 @@ import {
   upsertQuizQuestionAction,
   deleteQuizQuestionAction,
   publishTopicAction,
+  deleteTopicAction,
 } from "@/server/actions";
 import {
   FileText,
@@ -42,6 +43,7 @@ export interface StudioTopicDrawerProps {
     isPublished: boolean;
     version: number;
   }) => void;
+  onTopicDeleted?: (topicId: string) => void;
 }
 
 export function StudioTopicDrawer({
@@ -50,6 +52,7 @@ export function StudioTopicDrawer({
   courseSlug,
   topicId,
   onTopicUpdated,
+  onTopicDeleted,
 }: StudioTopicDrawerProps) {
   const [activeTab, setActiveTab] = useState<StudioTab>("content");
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
@@ -88,11 +91,14 @@ export function StudioTopicDrawer({
   const [version, setVersion] = useState(1);
   const [publishStatus, setPublishStatus] = useState<string | null>(null);
   const [isSavingPublish, startSavingPublish] = useTransition();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isDeletingTopic, startDeletingTopic] = useTransition();
 
   // Load details whenever drawer opens or topicId changes
   useEffect(() => {
     if (!isOpen || !topicId) {
       setTopicDetails(null);
+      setConfirmDelete(false);
       return;
     }
 
@@ -102,6 +108,7 @@ export function StudioTopicDrawer({
     setContentStatus(null);
     setQuizStatus(null);
     setPublishStatus(null);
+    setConfirmDelete(false);
 
     getTopicStudioDetailsAction({ courseSlug, topicId })
       .then((res) => {
@@ -321,7 +328,27 @@ export function StudioTopicDrawer({
       } else {
         setPublishStatus(res.error.message);
       }
+    });
+  };
 
+  // Handler: Delete Topic
+  const handleDeleteTopic = () => {
+    if (!topicId) return;
+
+    startDeletingTopic(async () => {
+      setPublishStatus(null);
+      const res = await deleteTopicAction({
+        courseSlug,
+        topicId,
+      });
+
+      if (res.success) {
+        setConfirmDelete(false);
+        onTopicDeleted?.(topicId);
+        onClose();
+      } else {
+        setPublishStatus(res.error.message || "Ошибка удаления темы");
+      }
     });
   };
 
@@ -919,6 +946,61 @@ export function StudioTopicDrawer({
                   >
                     Опубликовать обновление (v{version + 1})
                   </Button>
+                </div>
+              </Card>
+
+              {/* Danger Zone: Delete Topic */}
+              <Card variant="default" className="p-4 bg-surface-card border-red-500/30 space-y-3">
+                <div className="flex items-start gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0 mt-0.5">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-red-400 text-xs">
+                      Опасная зона: Удаление темы
+                    </h4>
+                    <p className="text-[11px] text-text-muted mt-0.5 leading-relaxed">
+                      Безвозвратно удаляет тему, её учебные материалы, вопросы квиза и все входящие/исходящие связи на графе.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  {confirmDelete ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-red-400 font-medium">Точно удалить?</span>
+                      <Button
+                        type="button"
+                        onClick={() => setConfirmDelete(false)}
+                        disabled={isDeletingTopic}
+                        size="sm"
+                        variant="ghost"
+                      >
+                        Отмена
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={handleDeleteTopic}
+                        isLoading={isDeletingTopic}
+                        size="sm"
+                        variant="outline"
+                        className="border-red-500/50 text-red-400 hover:bg-red-500/20"
+                      >
+                        Да, удалить
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      onClick={() => setConfirmDelete(true)}
+                      size="sm"
+                      variant="outline"
+                      className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                      leftIcon={<Trash2 className="w-3.5 h-3.5" />}
+                    >
+                      Удалить тему
+                    </Button>
+                  )}
                 </div>
               </Card>
             </div>

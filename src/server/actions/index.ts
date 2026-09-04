@@ -78,6 +78,20 @@ export {
   type EnrollCourseOutput,
 } from "./course-actions";
 
+export {
+  createCourseAction,
+  createCourseSchema,
+  type CreateCourseInput,
+  type CreateCourseOutput,
+} from "./admin-course-actions";
 
-
-
+export {
+  createTopicAction,
+  createTopicSchema,
+  type CreateTopicInput,
+  type CreateTopicOutput,
+  deleteTopicAction,
+  deleteTopicSchema,
+  type DeleteTopicInput,
+  type DeleteTopicOutput,
+} from "./studio-topic-lifecycle-actions";

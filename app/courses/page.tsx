@@ -8,6 +8,7 @@ import {
 } from "@/modules/roadmap";
 import { Card, Button, Badge } from "@/shared/ui";
 import { ROUTES } from "@/shared/config";
+import { CreateCourseModal } from "./CreateCourseModal";
 import {
   Compass,
   GraduationCap,
@@ -44,6 +45,8 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
   });
 
   const isAuthenticated = Boolean(session?.user);
+  const canCreateCourse =
+    session?.user?.role === "ADMIN" || session?.user?.role === "AUTHOR";
 
   return (
     <main className="w-full min-h-screen bg-surface-canvas text-text-primary flex flex-col">
@@ -71,6 +74,8 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
           </div>
 
           <div className="flex items-center gap-2.5">
+            {canCreateCourse && <CreateCourseModal />}
+
             <Link href={ROUTES.PRACTICE}>
               <Button
                 size="sm"
