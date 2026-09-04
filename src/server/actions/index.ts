@@ -121,3 +121,19 @@ export {
   type UpdateUserRoleOutput,
 } from "./admin-user-actions";
 
+export {
+  updateProfileNameAction,
+  updateProfileNameSchema,
+  type UpdateProfileNameInput,
+  type UpdateProfileNameOutput,
+  changePasswordAction,
+  changePasswordSchema,
+  type ChangePasswordInput,
+  type ChangePasswordOutput,
+  deleteAccountAction,
+  deleteAccountSchema,
+  type DeleteAccountInput,
+  type DeleteAccountOutput,
+} from "./user-settings-actions";
+
+
