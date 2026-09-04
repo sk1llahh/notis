@@ -52,4 +52,5 @@ export const ROUTES = {
   PROFILE: "/profile",
   LOGIN: "/login",
   REGISTER: "/register",
+  ADMIN_USERS: "/admin/users",
 } as const;

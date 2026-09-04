@@ -79,16 +79,15 @@ export default async function PracticePage() {
                 <CalendarCheck2 className="w-8 h-8" />
               </div>
 
-              <Badge size="md" variant="completed" className="mb-2">
-                Все темы повторены!
+              <Badge size="md" variant="completed" className="mb-3">
+                Отличная работа!
               </Badge>
 
               <h2 className="text-xl font-bold text-text-primary mb-2">
-                Отличная работа
+                Все карточки на сегодня повторены!
               </h2>
               <p className="text-sm text-text-secondary leading-relaxed mb-6">
-                На сегодня нет карточек, требующих повторения по алгоритму SM-2.
-                Возвращайтесь позже или изучите новую тему на карте курса!
+                Завершайте новые темы в каталоге, чтобы добавлять новые карточки в колоду.
               </p>
 
               <div className="flex flex-col gap-2.5 w-full">
@@ -98,7 +97,7 @@ export default async function PracticePage() {
                     className="w-full"
                     rightIcon={<BookOpen className="w-4 h-4" />}
                   >
-                    Открыть роадмапы курсов
+                    Перейти в каталог курсов
                   </Button>
                 </Link>
 

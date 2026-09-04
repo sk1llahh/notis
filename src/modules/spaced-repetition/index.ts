@@ -9,6 +9,10 @@ export {
 } from "./services/sm2-algorithm";
 
 export { getDueFlashcards } from "./services/spaced-repetition-service";
+export {
+  enrollTopicIntoReviewQueue,
+  type EnrollTopicResult,
+} from "./services/spaced-card-service";
 
 export { FlashcardView } from "./components/FlashcardView";
 export { PracticeDeck } from "./components/PracticeDeck";

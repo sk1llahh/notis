@@ -15,6 +15,7 @@ import {
   X,
   BookOpen,
   Brain,
+  ShieldCheck,
 } from "lucide-react";
 import { Button, Badge } from "@/shared/ui";
 import { ROUTES } from "@/shared/config";
@@ -99,6 +100,7 @@ export function NavbarClient({ session, streak }: NavbarClientProps) {
   const user = session?.user;
   const isAuthenticated = Boolean(user);
   const isAuthorOrAdmin = user?.role === "AUTHOR" || user?.role === "ADMIN";
+  const isAdmin = user?.role === "ADMIN";
   const roleBadge = getRoleBadgeProps(user?.role);
 
   const initials = (user?.name || user?.email || "U")
@@ -248,6 +250,16 @@ export function NavbarClient({ session, streak }: NavbarClientProps) {
                         <span>Управление курсами</span>
                       </Link>
                     )}
+
+                    {isAdmin && (
+                      <Link
+                        href={ROUTES.ADMIN_USERS}
+                        className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-xs text-text-secondary hover:text-text-primary hover:bg-surface-card transition-colors"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Панель администратора</span>
+                      </Link>
+                    )}
                   </div>
 
                   <div className="h-px bg-border-subtle my-1" />
@@ -355,6 +367,16 @@ export function NavbarClient({ session, streak }: NavbarClientProps) {
                   >
                     <Sparkles className="w-4 h-4 text-status-available" />
                     <span>Управление курсами</span>
+                  </Link>
+                )}
+
+                {isAdmin && (
+                  <Link
+                    href={ROUTES.ADMIN_USERS}
+                    className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-amber-400" />
+                    <span>Панель администратора</span>
                   </Link>
                 )}
 

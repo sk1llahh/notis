@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/server/db";
 import { GAMIFICATION_RULES } from "@/shared/config";
 import { evaluateQuizSubmission, type QuizResultDTO } from "@/modules/quiz";
+import { enrollTopicIntoReviewQueue } from "@/modules/spaced-repetition/services/spaced-card-service";
 import { createSafeAction, ActionException } from "./safe-action";
 
 export const submitQuizSchema = z.object({
@@ -164,14 +165,45 @@ export const submitQuizAction = createSafeAction(
             });
           }
         }
+
+        // Enroll all active questions of the completed topic into SM-2 review queue
+        await enrollTopicIntoReviewQueue(user.id, topic.id, tx);
+      }
+
+      // If student made a mistake in any question, schedule immediate review for today
+      for (const item of quizResult.breakdown) {
+        if (!item.isCorrect) {
+          await tx.userQuestionReview.upsert({
+            where: {
+              userId_questionId: {
+                userId: user.id,
+                questionId: item.questionId,
+              },
+            },
+            create: {
+              userId: user.id,
+              questionId: item.questionId,
+              intervalDays: 0,
+              repetitionCount: 0,
+              easeFactor: 2.5,
+              reviewDueAt: now,
+              lapseCount: 1,
+            },
+            update: {
+              reviewDueAt: now,
+              lapseCount: { increment: 1 },
+            },
+          });
+        }
       }
     });
 
     if (quizResult.passed) {
-      // Revalidate course roadmap and topic reader caches
+      // Revalidate course roadmap, topic reader, profile, and practice deck caches
       revalidatePath(`/courses/${input.courseSlug}`);
       revalidatePath(`/courses/${input.courseSlug}/topics/${input.topicSlug}`);
       revalidatePath(`/profile`);
+      revalidatePath(`/practice`);
     }
 
     return quizResult;

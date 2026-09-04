@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/server/db";
 import { GAMIFICATION_RULES } from "@/shared/config";
 import { calculateStreakStatus } from "@/modules/gamification/services/streak-calculator";
+import { enrollTopicIntoReviewQueue } from "@/modules/spaced-repetition/services/spaced-card-service";
 import { createSafeAction, ActionException } from "./safe-action";
 
 export const completeTopicSchema = z.object({
@@ -197,12 +198,16 @@ export const completeTopicAction = createSafeAction(
           },
         });
       }
+
+      // 7.4 Enroll topic into SM-2 review queue
+      await enrollTopicIntoReviewQueue(user.id, topic.id, tx);
     });
 
     // 8. Invalidate Next.js cache
     revalidatePath(`/courses/${input.courseSlug}`);
     revalidatePath(`/courses/${input.courseSlug}/topics/${input.topicSlug}`);
     revalidatePath(`/profile`);
+    revalidatePath(`/practice`);
 
     return {
       success: true,

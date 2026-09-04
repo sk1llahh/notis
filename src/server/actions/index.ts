@@ -113,3 +113,11 @@ export {
   type RegisterUserInput,
   type RegisterUserOutput,
 } from "./auth-actions";
+
+export {
+  updateUserRoleAction,
+  updateUserRoleSchema,
+  type UpdateUserRoleInput,
+  type UpdateUserRoleOutput,
+} from "./admin-user-actions";
+
