@@ -44,3 +44,16 @@ export { TopicEdge, type TopicEdgeType } from "./components/edges/topic-edge";
 export { RoadmapNextAction } from "./components/controls/roadmap-next-action";
 export { RoadmapDrawer } from "./components/drawer/roadmap-drawer";
 export { useRoadmapStore, type RoadmapFocusMode, type RoadmapState } from "./hooks/use-roadmap-store";
+
+// Catalog Service & Components
+export {
+  getCatalogCourses,
+  type CourseCardDTO,
+  type CourseDifficulty,
+  type GetCatalogCoursesOptions,
+} from "./services/course-catalog-service";
+
+export { CourseCard, type CourseCardProps } from "./components/catalog/CourseCard";
+export { CourseCatalogFilter } from "./components/catalog/CourseCatalogFilter";
+
+

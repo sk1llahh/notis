@@ -71,5 +71,13 @@ export {
   type ReviewCardOutput,
 } from "./spaced-repetition-actions";
 
+export {
+  enrollCourseAction,
+  enrollCourseSchema,
+  type EnrollCourseInput,
+  type EnrollCourseOutput,
+} from "./course-actions";
+
+
 
 
