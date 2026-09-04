@@ -136,4 +136,16 @@ export {
   type DeleteAccountOutput,
 } from "./user-settings-actions";
 
+export {
+  leaveCourseAction,
+  leaveCourseSchema,
+  type LeaveCourseInput,
+  type LeaveCourseOutput,
+  resetCourseProgressAction,
+  resetCourseProgressSchema,
+  type ResetCourseProgressInput,
+  type ResetCourseProgressOutput,
+} from "./course-enrollment-actions";
+
+
 

@@ -58,6 +58,7 @@ export interface RoadmapGraphDTO {
     slug: string;
     title: string;
     learningMode: string;
+    isEnrolled?: boolean;
   };
   nodes: RoadmapNodeDTO[];
   edges: RoadmapEdgeDTO[];

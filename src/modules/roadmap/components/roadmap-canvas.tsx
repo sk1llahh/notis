@@ -16,6 +16,7 @@ import {
 import { TopicNode } from "./nodes/topic-node";
 import { TopicEdge } from "./edges/topic-edge";
 import { RoadmapNextAction } from "./controls/roadmap-next-action";
+import { CourseOptionsMenu } from "./controls/CourseOptionsMenu";
 import { RoadmapDrawer } from "./drawer/roadmap-drawer";
 import { useRoadmapStore } from "../hooks/use-roadmap-store";
 import type { RoadmapGraphDTO, TopicNodePayload } from "../types";
@@ -145,6 +146,14 @@ function RoadmapCanvasInner({ initialData }: RoadmapCanvasProps) {
         >
           {focusMode === "UNLOCKED_ONLY" ? "Только открытые" : "Все темы"}
         </Button>
+
+        {/* Course Options (Enrolled Students Only) */}
+        {initialData.course.isEnrolled && (
+          <CourseOptionsMenu
+            courseSlug={initialData.course.slug}
+            courseTitle={initialData.course.title}
+          />
+        )}
       </div>
 
       {/* React Flow Viewport */}

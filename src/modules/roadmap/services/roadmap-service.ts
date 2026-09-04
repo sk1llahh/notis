@@ -64,9 +64,10 @@ export async function getCourseRoadmapGraph(
   // 2. Fetch user-specific progress and layouts if authenticated
   let userProgressRecords: RawUserProgress[] = [];
   let userLayoutRecords: RawPosition[] = [];
+  let isEnrolled = false;
 
   if (userId) {
-    const [progressList, layoutsList] = await Promise.all([
+    const [progressList, layoutsList, enrollment] = await Promise.all([
       prisma.userProgress.findMany({
         where: {
           userId,
@@ -91,6 +92,14 @@ export async function getCourseRoadmapGraph(
           positionY: true,
         },
       }),
+      prisma.courseEnrollment.findFirst({
+        where: {
+          userId,
+          courseId: courseRecord.id,
+          status: "ACTIVE",
+        },
+        select: { id: true },
+      }),
     ]);
 
     userProgressRecords = progressList.map((p) => ({
@@ -104,6 +113,8 @@ export async function getCourseRoadmapGraph(
       positionX: l.positionX,
       positionY: l.positionY,
     }));
+
+    isEnrolled = Boolean(enrollment);
   }
 
   // 3. Map into clean RawCourse structure
@@ -158,11 +169,15 @@ export async function getCourseRoadmapGraph(
   );
 
   // 4. Transform via pure domain logic
-  return transformCourseToGraphDTO({
+  const graphDTO = transformCourseToGraphDTO({
     course: rawCourse,
     userProgress: userProgressRecords,
     defaultLayouts,
     userLayouts: userLayoutRecords,
     locale: locale ?? courseRecord.defaultLocale,
   });
+
+  graphDTO.course.isEnrolled = isEnrolled;
+
+  return graphDTO;
 }
