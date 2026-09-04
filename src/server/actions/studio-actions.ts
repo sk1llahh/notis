@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/server/db";
 import { assertCourseAuthor } from "@/server/auth";
+import { wouldCreateCycle } from "@/modules/roadmap/lib/cycle-detector";
 import { createSafeAction, ActionException } from "./safe-action";
 
 // =============================================================================
@@ -128,23 +129,35 @@ export const connectPrerequisiteAction = createSafeAction(
     }
 
     // 2. RBAC Guard
-    await assertCourseAuthor(input.courseSlug, session.user?.id);
+    const courseAuth = await assertCourseAuthor(input.courseSlug, session.user?.id);
 
-    // 3. Cycle prevention: check if reverse dependency exists
-    const reversePrerequisite = await prisma.topicPrerequisite.findUnique({
+    // 3. Cycle prevention: load all existing edges for the course and verify DAG invariant via DFS
+    const existingPrerequisites = await prisma.topicPrerequisite.findMany({
       where: {
-        topicId_prerequisiteId: {
-          topicId: input.prerequisiteId,
-          prerequisiteId: input.topicId,
+        topic: {
+          courseId: courseAuth.courseId,
         },
       },
-      select: { id: true },
+      select: {
+        prerequisiteId: true,
+        topicId: true,
+      },
     });
 
-    if (reversePrerequisite) {
+    const existingEdges = existingPrerequisites.map((p) => ({
+      source: p.prerequisiteId,
+      target: p.topicId,
+    }));
+
+    const newEdge = {
+      source: input.prerequisiteId,
+      target: input.topicId,
+    };
+
+    if (wouldCreateCycle(existingEdges, newEdge)) {
       throw new ActionException(
         "CONFLICT",
-        "Циклическая зависимость: темы блокируют друг друга"
+        "Невозможно добавить связь: обнаружен циклический путь зависимостей"
       );
     }
 

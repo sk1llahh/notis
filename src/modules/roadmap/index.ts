@@ -56,4 +56,5 @@ export {
 export { CourseCard, type CourseCardProps } from "./components/catalog/CourseCard";
 export { CourseCatalogFilter } from "./components/catalog/CourseCatalogFilter";
 
-
+// Graph Utilities
+export { wouldCreateCycle, type EdgeDefinition } from "./lib/cycle-detector";
