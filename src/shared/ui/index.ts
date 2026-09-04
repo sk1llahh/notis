@@ -45,3 +45,9 @@ export {
   type NavbarClientProps,
 } from "./navbar";
 
+// Markdown
+export {
+  MarkdownRenderer,
+  type MarkdownRendererProps,
+} from "./markdown";
+

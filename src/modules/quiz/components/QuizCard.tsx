@@ -1,6 +1,14 @@
 import React from "react";
 import { ArrowLeft, ArrowRight, Check, Send } from "lucide-react";
-import { Badge, Button, Card, CardHeader, CardTitle, CardContent } from "@/shared/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  MarkdownRenderer,
+} from "@/shared/ui";
 import type { QuizQuestionDTO } from "../types";
 
 interface QuizCardProps {
@@ -38,7 +46,7 @@ export function QuizCard({
         </div>
 
         <CardTitle className="text-lg sm:text-xl font-bold text-text-primary leading-snug">
-          {question.question}
+          <MarkdownRenderer content={question.question} />
         </CardTitle>
 
         {question.codeSnippet && (

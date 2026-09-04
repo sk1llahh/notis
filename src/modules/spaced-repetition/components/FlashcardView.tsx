@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Badge } from "@/shared/ui";
+import { Badge, MarkdownRenderer } from "@/shared/ui";
 import { RotateCw, CornerDownLeft } from "lucide-react";
 import type { ReviewCardDTO } from "../types";
 
@@ -97,9 +97,10 @@ export function FlashcardView({
 
           {/* Front Content (Question) */}
           <div className="my-auto py-6 text-center">
-            <p className="text-lg sm:text-xl font-medium text-text-primary leading-relaxed">
-              {card.front}
-            </p>
+            <MarkdownRenderer
+              content={card.front}
+              className="text-lg sm:text-xl font-medium text-text-primary leading-relaxed"
+            />
           </div>
 
           {/* Bottom Hint */}
@@ -140,9 +141,10 @@ export function FlashcardView({
 
           {/* Back Content */}
           <div className="my-auto py-4 overflow-y-auto max-h-[220px] text-left space-y-3">
-            <p className="text-sm sm:text-base text-text-primary leading-relaxed whitespace-pre-wrap">
-              {card.back}
-            </p>
+            <MarkdownRenderer
+              content={card.back}
+              className="text-sm sm:text-base text-text-primary leading-relaxed"
+            />
 
             {card.codeSnippet && (
               <pre className="p-3 rounded-lg bg-surface-canvas border border-border-subtle font-mono text-xs text-status-available overflow-x-auto">

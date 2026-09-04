@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useTransition } from "react";
-import { Drawer, Card, CardHeader, CardTitle, CardContent, Button, Badge } from "@/shared/ui";
+import { Drawer, Card, CardHeader, CardTitle, CardContent, Button, Badge, MarkdownRenderer } from "@/shared/ui";
 import {
   getTopicStudioDetailsAction,
   updateTopicContentAction,
@@ -62,6 +62,7 @@ export function StudioTopicDrawer({
   // Content form state
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
+  const [summaryMode, setSummaryMode] = useState<"edit" | "preview">("edit");
   const [difficulty, setDifficulty] = useState<
     "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "EXPERT"
   >("BEGINNER");
@@ -437,18 +438,57 @@ export function StudioTopicDrawer({
                 />
               </div>
 
-              {/* Summary */}
+              {/* Summary with Edit / Preview Switch */}
               <div>
-                <label className="block text-[11px] font-semibold text-text-secondary mb-1">
-                  Краткая выжимка (summary)
-                </label>
-                <textarea
-                  rows={2}
-                  value={summary}
-                  onChange={(e) => setSummary(e.target.value)}
-                  placeholder="1-2 предложения, отражающие суть темы..."
-                  className="w-full bg-surface-canvas border border-border-subtle rounded-md px-3 py-2 text-text-primary text-xs placeholder:text-text-muted focus:outline-none focus:border-border-focus resize-none"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[11px] font-semibold text-text-secondary">
+                    Краткая выжимка (summary)
+                  </label>
+                  <div className="flex items-center gap-1 p-0.5 rounded bg-surface-canvas border border-border-subtle text-[10px]">
+                    <button
+                      type="button"
+                      onClick={() => setSummaryMode("edit")}
+                      className={`px-2 py-0.5 rounded-xs transition-colors cursor-pointer ${
+                        summaryMode === "edit"
+                          ? "bg-surface-elevated text-text-primary font-medium"
+                          : "text-text-muted hover:text-text-secondary"
+                      }`}
+                    >
+                      Редактирование
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSummaryMode("preview")}
+                      className={`px-2 py-0.5 rounded-xs transition-colors cursor-pointer ${
+                        summaryMode === "preview"
+                          ? "bg-surface-elevated text-status-available font-medium"
+                          : "text-text-muted hover:text-text-secondary"
+                      }`}
+                    >
+                      Предпросмотр
+                    </button>
+                  </div>
+                </div>
+
+                {summaryMode === "edit" ? (
+                  <textarea
+                    rows={3}
+                    value={summary}
+                    onChange={(e) => setSummary(e.target.value)}
+                    placeholder="1-2 предложения, отражающие суть темы..."
+                    className="w-full bg-surface-canvas border border-border-subtle rounded-md px-3 py-2 text-text-primary text-xs placeholder:text-text-muted focus:outline-none focus:border-border-focus resize-none"
+                  />
+                ) : (
+                  <div className="w-full min-h-[70px] bg-surface-canvas border border-border-subtle rounded-md px-3 py-2 text-xs">
+                    {summary ? (
+                      <MarkdownRenderer content={summary} />
+                    ) : (
+                      <span className="text-text-muted italic">
+                        Текст выжимки пуст. Переключитесь в режим редактирования для ввода.
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Difficulty */}

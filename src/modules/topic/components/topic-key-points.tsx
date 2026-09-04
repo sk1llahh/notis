@@ -6,6 +6,7 @@ import {
   CardTitle,
   CardDescription,
   CardContent,
+  MarkdownRenderer,
 } from "@/shared/ui";
 import type { TopicDetailsDTO } from "../types";
 
@@ -20,8 +21,8 @@ export function TopicKeyPoints({ topic }: TopicKeyPointsProps) {
     <div className="space-y-8 py-6">
       {/* Description / Main Body if present */}
       {description && (
-        <section className="prose prose-invert max-w-none text-text-primary text-sm sm:text-base leading-relaxed space-y-4">
-          <p className="whitespace-pre-line">{description}</p>
+        <section className="text-text-primary text-sm sm:text-base leading-relaxed space-y-4">
+          <MarkdownRenderer content={description} />
         </section>
       )}
 
@@ -49,7 +50,9 @@ export function TopicKeyPoints({ topic }: TopicKeyPointsProps) {
                     className="flex items-start gap-2.5 text-xs sm:text-sm text-text-primary leading-snug"
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-status-available shrink-0 mt-1.5" />
-                    <span>{point}</span>
+                    <div className="flex-1">
+                      <MarkdownRenderer content={point} />
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -85,7 +88,9 @@ export function TopicKeyPoints({ topic }: TopicKeyPointsProps) {
                     className="flex items-start gap-2.5 text-xs sm:text-sm text-text-primary leading-snug"
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-status-progress shrink-0 mt-1.5" />
-                    <span>{pitfall}</span>
+                    <div className="flex-1">
+                      <MarkdownRenderer content={pitfall} />
+                    </div>
                   </li>
                 ))}
               </ul>

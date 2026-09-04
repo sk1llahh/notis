@@ -1,7 +1,15 @@
 import React from "react";
 import Link from "next/link";
 import { CheckCircle2, XCircle, Trophy, RotateCcw, ArrowRight, AlertTriangle } from "lucide-react";
-import { Badge, Button, Card, CardHeader, CardTitle, CardContent } from "@/shared/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  MarkdownRenderer,
+} from "@/shared/ui";
 import { ROUTES } from "@/shared/config";
 import type { QuizResultDTO, QuizQuestionDTO } from "../types";
 
@@ -131,7 +139,7 @@ export function QuizResultView({
                         Вопрос {index + 1}
                       </span>
                       <CardTitle className="text-sm font-semibold text-text-primary mt-0.5">
-                        {questionDef?.question ?? "Вопрос темы"}
+                        <MarkdownRenderer content={questionDef?.question ?? "Вопрос темы"} />
                       </CardTitle>
                     </div>
                   </div>
@@ -148,10 +156,10 @@ export function QuizResultView({
                   {/* Explanation if provided */}
                   {item.explanation && (
                     <div className="p-2.5 rounded bg-surface-elevated text-text-secondary leading-relaxed border border-border-subtle">
-                      <span className="font-semibold text-text-primary">
-                        Объяснение:{" "}
+                      <span className="font-semibold text-text-primary block mb-1">
+                        Объяснение:
                       </span>
-                      {item.explanation}
+                      <MarkdownRenderer content={item.explanation} />
                     </div>
                   )}
                 </CardContent>
