@@ -13,7 +13,7 @@ import {
   MarkdownRenderer,
 } from "@/shared/ui";
 import { ROUTES } from "@/shared/config";
-import { retakeQuizAction } from "@/server/actions";
+import { retakeQuizAction } from "@/server/actions/quiz-actions";
 import type { QuizResultDTO, QuizQuestionDTO } from "../types";
 
 interface QuizResultViewProps {

@@ -43,3 +43,5 @@ export interface FullUserProfileData {
   activity: ActivityDayDTO[];
   courses: EnrolledCourseProgressDTO[];
 }
+
+export type { StreakStatus } from "./services/streak-calculator";

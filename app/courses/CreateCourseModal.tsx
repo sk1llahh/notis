@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Input, Card } from "@/shared/ui";
-import { createCourseAction } from "@/server/actions";
+import { createCourseAction } from "@/server/actions/admin-course-actions";
 import { slugify } from "@/shared/lib/utils";
 import { ROUTES } from "@/shared/config";
 import { Plus, X, Sparkles, AlertCircle, Wand2 } from "lucide-react";

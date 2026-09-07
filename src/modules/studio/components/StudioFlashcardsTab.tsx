@@ -7,8 +7,8 @@ import {
   createFlashcardAction,
   updateFlashcardAction,
   deleteFlashcardAction,
-  type FlashcardDTO,
-} from "@/server/actions";
+} from "@/server/actions/admin-flashcard-actions";
+import type { FlashcardDTO } from "@/server/actions/admin-flashcard-actions.schemas";
 import {
   Plus,
   Edit2,

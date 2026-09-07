@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useTransition } from "react";
-import { updateUserRoleAction } from "@/server/actions";
+import { updateUserRoleAction } from "@/server/actions/admin-user-actions";
 import { Lock, Loader2, Check, AlertCircle } from "lucide-react";
 
 export interface UserRoleSelectProps {

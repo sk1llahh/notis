@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   leaveCourseAction,
   resetCourseProgressAction,
-} from "@/server/actions";
+} from "@/server/actions/course-enrollment-actions";
 import { Button, Input, Card, Badge } from "@/shared/ui";
 import {
   Settings2,

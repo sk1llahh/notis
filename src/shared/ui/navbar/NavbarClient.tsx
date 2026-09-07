@@ -19,8 +19,8 @@ import {
 } from "lucide-react";
 import { Button, Badge } from "@/shared/ui";
 import { ROUTES } from "@/shared/config";
-import type { AuthSession, UserRole } from "@/server/auth";
-import type { StreakStatus } from "@/modules/gamification";
+import type { AuthSession, UserRole } from "@/server/auth/session";
+import type { StreakStatus } from "@/modules/gamification/types";
 
 export interface NavbarClientProps {
   session: AuthSession | null;

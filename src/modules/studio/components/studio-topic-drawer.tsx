@@ -8,10 +8,10 @@ import {
   upsertQuizQuestionAction,
   deleteQuizQuestionAction,
   publishTopicAction,
-  deleteTopicAction,
-  assignTopicTierAction,
-  getTopicFlashcardsAction,
-} from "@/server/actions";
+} from "@/server/actions/studio-topic-actions";
+import { deleteTopicAction } from "@/server/actions/studio-topic-lifecycle-actions";
+import { assignTopicTierAction } from "@/server/actions/admin-tier-actions";
+import { getTopicFlashcardsAction } from "@/server/actions/admin-flashcard-actions";
 import {
   FileText,
   HelpCircle,

@@ -6,7 +6,7 @@ import {
   updateProfileNameAction,
   changePasswordAction,
   deleteAccountAction,
-} from "@/server/actions";
+} from "@/server/actions/user-settings-actions";
 import { Card, Button, Input, Badge } from "@/shared/ui";
 import {
   User,

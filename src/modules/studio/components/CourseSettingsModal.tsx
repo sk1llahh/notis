@@ -6,7 +6,7 @@ import { Button, Input, Card } from "@/shared/ui";
 import {
   updateCourseSettingsAction,
   deleteCourseAction,
-} from "@/server/actions";
+} from "@/server/actions/admin-course-actions";
 import { ROUTES } from "@/shared/config";
 import {
   Settings,

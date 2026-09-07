@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, ArrowRight, Zap, Trophy, GraduationCap } from "lucide-react";
 import { Button, Card } from "@/shared/ui";
 import { ROUTES } from "@/shared/config";
-import { completeTopicAction } from "@/server/actions";
+import { completeTopicAction } from "@/server/actions/topic-actions";
 import { QuizModal, type QuizQuestionDTO } from "@/modules/quiz";
 import type { TopicDetailsDTO } from "../types";
 

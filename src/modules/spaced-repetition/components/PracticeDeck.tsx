@@ -4,7 +4,7 @@ import React, { useState, useTransition } from "react";
 import Link from "next/link";
 import { Card, Button, Badge } from "@/shared/ui";
 import { FlashcardView } from "./FlashcardView";
-import { reviewCardAction } from "@/server/actions";
+import { reviewCardAction } from "@/server/actions/spaced-repetition-actions";
 import { ROUTES } from "@/shared/config";
 import {
   Trophy,

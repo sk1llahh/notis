@@ -15,7 +15,7 @@ import {
   Input,
 } from "@/shared/ui";
 import { ROUTES } from "@/shared/config";
-import { registerUserAction } from "@/server/actions";
+import { registerUserAction } from "@/server/actions/auth-actions";
 import {
   GraduationCap,
   UserPlus,

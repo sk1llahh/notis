@@ -26,9 +26,9 @@ import {
   updateNodePositionsAction,
   connectPrerequisiteAction,
   disconnectPrerequisiteAction,
-  createTopicAction,
-  type CourseTierDTO,
-} from "@/server/actions";
+} from "@/server/actions/studio-actions";
+import { createTopicAction } from "@/server/actions/studio-topic-lifecycle-actions";
+import type { CourseTierDTO } from "@/server/actions/admin-tier-actions.schemas";
 import { Badge, Button, Input } from "@/shared/ui";
 import { ROUTES } from "@/shared/config";
 import {

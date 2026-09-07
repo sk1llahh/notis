@@ -14,7 +14,7 @@ import {
   Button,
 } from "@/shared/ui";
 import { ROUTES } from "@/shared/config";
-import { enrollCourseAction } from "@/server/actions";
+import { enrollCourseAction } from "@/server/actions/course-actions";
 import type { CourseCardDTO, CourseDifficulty } from "../../services/course-catalog-service";
 import {
   Clock,

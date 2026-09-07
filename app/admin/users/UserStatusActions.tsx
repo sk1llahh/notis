@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useTransition } from "react";
-import { updateUserRoleAction } from "@/server/actions";
+import { updateUserRoleAction } from "@/server/actions/admin-user-actions";
 import { Badge } from "@/shared/ui";
 import { Ban, CheckCircle2, Unlock, Loader2, AlertCircle, Lock } from "lucide-react";
 

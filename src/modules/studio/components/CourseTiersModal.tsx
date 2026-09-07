@@ -7,8 +7,8 @@ import {
   createCourseTierAction,
   updateCourseTierAction,
   deleteCourseTierAction,
-  type CourseTierDTO,
-} from "@/server/actions";
+} from "@/server/actions/admin-tier-actions";
+import type { CourseTierDTO } from "@/server/actions/admin-tier-actions.schemas";
 import {
   Layers,
   X,

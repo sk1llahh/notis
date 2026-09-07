@@ -4,7 +4,7 @@ import React, { useState, useTransition } from "react";
 import { QuizStepper } from "./QuizStepper";
 import { QuizCard } from "./QuizCard";
 import { QuizResultView } from "./QuizResultView";
-import { submitQuizAction } from "@/server/actions";
+import { submitQuizAction } from "@/server/actions/quiz-actions";
 import type { QuizQuestionDTO, QuizResultDTO } from "../types";
 
 interface QuizContainerProps {
