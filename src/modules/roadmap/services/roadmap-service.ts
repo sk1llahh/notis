@@ -67,10 +67,19 @@ export async function getCourseRoadmapGraph(
   let isEnrolled = false;
 
   if (userId) {
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [{ id: userId }, { authId: userId }, { email: userId }],
+      },
+      select: { id: true },
+    });
+
+    const canonicalUserId = user?.id ?? userId;
+
     const [progressList, layoutsList, enrollment] = await Promise.all([
       prisma.userProgress.findMany({
         where: {
-          userId,
+          userId: canonicalUserId,
           topic: {
             courseId: courseRecord.id,
           },
@@ -83,7 +92,7 @@ export async function getCourseRoadmapGraph(
       }),
       prisma.userGraphLayout.findMany({
         where: {
-          userId,
+          userId: canonicalUserId,
           courseId: courseRecord.id,
         },
         select: {
@@ -94,7 +103,7 @@ export async function getCourseRoadmapGraph(
       }),
       prisma.courseEnrollment.findFirst({
         where: {
-          userId,
+          userId: canonicalUserId,
           courseId: courseRecord.id,
           status: "ACTIVE",
         },

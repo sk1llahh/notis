@@ -77,8 +77,7 @@ export function LoginForm({
         return;
       }
 
-      router.push(targetUrl);
-      router.refresh();
+      window.location.href = targetUrl;
     } catch {
       setErrorMessage("Произошла непредвиденная ошибка при входе");
       setIsLoading(false);
@@ -130,7 +129,7 @@ export function LoginForm({
               <button
                 type="button"
                 onClick={() =>
-                  selectDemoAccount("admin@notis.local", "admin123")
+                  selectDemoAccount("admin@notis.dev", "password123")
                 }
                 className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md bg-surface-card hover:bg-surface-hover border border-border-subtle hover:border-border-focus text-xs font-medium text-text-primary transition-colors cursor-pointer"
               >
@@ -140,7 +139,7 @@ export function LoginForm({
               <button
                 type="button"
                 onClick={() =>
-                  selectDemoAccount("student@notis.local", "student123")
+                  selectDemoAccount("student@notis.dev", "password123")
                 }
                 className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md bg-surface-card hover:bg-surface-hover border border-border-subtle hover:border-border-focus text-xs font-medium text-text-primary transition-colors cursor-pointer"
               >

@@ -3,6 +3,8 @@ import { getTopicDetails, TopicReaderView } from "@/modules/topic";
 import { getQuizForTopic } from "@/modules/quiz";
 import { getAuthSession } from "@/server/auth";
 
+export const dynamic = "force-dynamic";
+
 interface TopicPageProps {
   params: Promise<{
     slug: string;

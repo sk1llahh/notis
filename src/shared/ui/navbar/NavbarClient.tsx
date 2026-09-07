@@ -111,7 +111,8 @@ export function NavbarClient({ session, streak }: NavbarClientProps) {
     pathname === ROUTES.PRACTICE || pathname?.startsWith("/practice/");
 
   const handleSignOut = async () => {
-    await signOut({ callbackUrl: ROUTES.HOME });
+    await signOut({ redirect: false });
+    window.location.href = ROUTES.HOME;
   };
 
   return (

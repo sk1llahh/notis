@@ -51,8 +51,7 @@ export async function getAuthSession(): Promise<AuthSession> {
   // Fallback for isolated CLI test runners without request headers/cookies
   const isTestRunner =
     Boolean(process.env.NODE_TEST_CONTEXT) ||
-    process.env.NODE_ENV === "test" ||
-    !process.env.NEXT_RUNTIME;
+    process.env.NODE_ENV === "test";
 
   if (isTestRunner) {
     return {

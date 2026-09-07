@@ -24,6 +24,20 @@ export async function getDueFlashcards(
   const limit = typeof options === "number" ? options : options?.limit ?? 20;
   const courseSlug = typeof options === "object" ? options?.courseSlug : undefined;
 
+  // Resolve canonical user ID if authId or email was passed
+  let canonicalUserId = userId;
+  if ((db as any).user?.findFirst) {
+    const user = await (db as any).user.findFirst({
+      where: {
+        OR: [{ id: userId }, { authId: userId }, { email: userId }],
+      },
+      select: { id: true },
+    });
+    if (user) {
+      canonicalUserId = user.id;
+    }
+  }
+
   // Base where condition for due reviews
   const whereCondition: {
     userId: string;
@@ -36,7 +50,7 @@ export async function getDueFlashcards(
       };
     };
   } = {
-    userId,
+    userId: canonicalUserId,
     OR: [{ reviewDueAt: { lte: now } }, { reviewDueAt: null }],
   };
 
@@ -81,7 +95,7 @@ export async function getDueFlashcards(
     const totalCount = await db.userQuestionReview.count({
       where: courseSlug
         ? {
-            userId,
+            userId: canonicalUserId,
             question: {
               topic: {
                 course: {
@@ -90,14 +104,14 @@ export async function getDueFlashcards(
               },
             },
           }
-        : { userId },
+        : { userId: canonicalUserId },
     });
 
     if (totalCount === 0) {
       // Find completed topics for the user
       const completedProgress = await db.userProgress.findMany({
         where: {
-          userId,
+          userId: canonicalUserId,
           status: "COMPLETED",
           ...(courseSlug
             ? {
@@ -127,7 +141,7 @@ export async function getDueFlashcards(
         if (questionsToSeed.length > 0) {
           await db.userQuestionReview.createMany({
             data: questionsToSeed.map((q) => ({
-              userId,
+              userId: canonicalUserId,
               questionId: q.id,
               reviewDueAt: now,
               repetitionCount: 0,

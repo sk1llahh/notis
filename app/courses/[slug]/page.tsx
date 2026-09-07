@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { getCourseRoadmapGraph, RoadmapCanvas } from "@/modules/roadmap";
 import { getAuthSession } from "@/server/auth";
 
+export const dynamic = "force-dynamic";
+
 interface CoursePageProps {
   params: Promise<{ slug: string }>;
 }

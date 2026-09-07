@@ -66,8 +66,7 @@ export function RegisterForm() {
         });
 
         if (signResult?.ok) {
-          router.push(ROUTES.PROFILE);
-          router.refresh();
+          window.location.href = ROUTES.PROFILE;
           return;
         }
       } catch {

@@ -1,20 +1,14 @@
-import Link from "next/link";
-import {
-  Compass,
-  Sparkles,
-  Brain,
-  Shield,
-  ArrowRight,
-} from "lucide-react";
+import { ROUTES } from "@/shared/config";
 import {
   Badge,
   Button,
   Card,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/shared/ui";
-import { ROUTES } from "@/shared/config";
+import { ArrowRight, Brain, Compass, Shield, Sparkles } from "lucide-react";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -38,8 +32,8 @@ export default function Home() {
           </h1>
           <p className="text-base sm:text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
             Интерактивные графы курсов, расчет тумана войны (Fog of War) и
-            интервальные повторения SM-2. Изучайте концепции в строгой логической
-            последовательности.
+            интервальные повторения SM-2. Изучайте концепции в строгой
+            логической последовательности.
           </p>
         </div>
 
@@ -98,7 +92,9 @@ export default function Home() {
               <div className="p-2.5 rounded-sm bg-status-completed/10 text-status-completed w-fit mb-2">
                 <Sparkles className="w-5 h-5" />
               </div>
-              <CardTitle className="text-sm font-bold">RPG Прокачка & XP</CardTitle>
+              <CardTitle className="text-sm font-bold">
+                RPG Прокачка & XP
+              </CardTitle>
             </CardHeader>
             <CardDescription>
               Отслеживание стриков, прогресса по уровням (Tiers) и
@@ -110,7 +106,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="w-full max-w-5xl py-4 text-center text-xs text-text-muted z-10 border-t border-border-subtle/50">
-        Notis Platform &copy; 2026. Образовательные графы знаний и тренажеры SuperMemo-2.
+        Zhumabekov Adilkhan &copy;
       </footer>
     </div>
   );

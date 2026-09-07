@@ -1,8 +1,5 @@
-import React from "react";
-import Link from "next/link";
-import { Card, Badge, Button } from "@/shared/ui";
-import { ROUTES } from "@/shared/config";
-import { Flame, AlertTriangle, CheckCircle2, ArrowRight } from "lucide-react";
+import { Badge, Card } from "@/shared/ui";
+import { AlertTriangle, CheckCircle2, Flame } from "lucide-react";
 
 export interface StreakCardProps {
   streak: number;
@@ -27,7 +24,8 @@ export function StreakCard({
   // Determine state styling and badges
   let statusText = "Начните серию сегодня";
   let statusVariant: "default" | "completed" | "progress" = "default";
-  let flameColorClass = "text-text-muted bg-surface-elevated border-border-subtle";
+  let flameColorClass =
+    "text-text-muted bg-surface-elevated border-border-subtle";
   let statusIcon = <Flame className="w-3.5 h-3.5" />;
 
   if (isStreakActiveToday) {
@@ -45,11 +43,15 @@ export function StreakCard({
   } else if (streak > 0) {
     statusText = "Продолжите серию сегодня";
     statusVariant = "progress";
-    flameColorClass = "text-status-progress bg-status-progress/10 border-status-progress/20";
+    flameColorClass =
+      "text-status-progress bg-status-progress/10 border-status-progress/20";
   }
 
   return (
-    <Card variant="elevated" className="p-5 flex flex-col justify-between h-full">
+    <Card
+      variant="elevated"
+      className="p-5 flex flex-col justify-between h-full"
+    >
       <div className="flex flex-col gap-4">
         {/* Top Header Row */}
         <div className="flex items-center justify-between">
@@ -74,7 +76,11 @@ export function StreakCard({
             </div>
           </div>
 
-          <Badge variant={statusVariant} size="sm" className="hidden sm:inline-flex">
+          <Badge
+            variant={statusVariant}
+            size="sm"
+            className="hidden sm:inline-flex"
+          >
             {statusIcon}
             {statusText}
           </Badge>
@@ -82,7 +88,11 @@ export function StreakCard({
 
         {/* Mobile Badge View */}
         <div className="sm:hidden">
-          <Badge variant={statusVariant} size="sm" className="w-full justify-center">
+          <Badge
+            variant={statusVariant}
+            size="sm"
+            className="w-full justify-center"
+          >
             {statusIcon}
             {statusText}
           </Badge>
@@ -92,23 +102,9 @@ export function StreakCard({
           {isStreakActiveToday
             ? "Вы выполнили учебную цель на сегодня. Серия дней в безопасности!"
             : isStreakExpiringSoon
-            ? "До сгорания серии осталось менее 12 часов. Повторите карточки в тренажере, чтобы сохранить результат!"
-            : "Занимайтесь каждый день, завершая темы или повторяя карточки, чтобы наращивать ударный режим."}
+              ? "До сгорания серии осталось менее 12 часов. Повторите карточки в тренажере, чтобы сохранить результат!"
+              : "Занимайтесь каждый день, завершая темы или повторяя карточки, чтобы наращивать ударный режим."}
         </p>
-      </div>
-
-      {/* Footer Quick Action */}
-      <div className="mt-4 pt-3 border-t border-border-subtle flex items-center justify-between">
-        <span className="text-xs text-text-muted">Интервальный тренажер</span>
-        <Link href={ROUTES.PRACTICE}>
-          <Button
-            size="sm"
-            variant={isStreakActiveToday ? "ghost" : "primary"}
-            rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
-          >
-            Повторить
-          </Button>
-        </Link>
       </div>
     </Card>
   );

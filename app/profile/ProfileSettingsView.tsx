@@ -1,22 +1,22 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
-import { signOut } from "next-auth/react";
 import {
-  updateProfileNameAction,
   changePasswordAction,
   deleteAccountAction,
+  updateProfileNameAction,
 } from "@/server/actions/user-settings-actions";
-import { Card, Button, Input, Badge } from "@/shared/ui";
+import { Badge, Button, Card, Input } from "@/shared/ui";
 import {
-  User,
-  KeyRound,
+  AlertCircle,
   AlertTriangle,
   CheckCircle2,
-  AlertCircle,
-  Mail,
+  KeyRound,
   Lock,
+  Mail,
+  User,
 } from "lucide-react";
+import { signOut } from "next-auth/react";
+import React, { useState, useTransition } from "react";
 
 export interface ProfileSettingsViewProps {
   initialName?: string;
@@ -129,7 +129,7 @@ export function ProfileSettingsView({
   };
 
   return (
-    <div className="flex flex-col gap-8 w-full max-w-3xl">
+    <div className="flex flex-col gap-8 w-full">
       {/* =================================================================
          SECTION 1: Personal Details
          ================================================================= */}
@@ -326,16 +326,19 @@ export function ProfileSettingsView({
         <div className="flex flex-col gap-4">
           <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
             Удаление учетной записи приведет к безвозвратной потере всей вашей
-            истории обучения: накопленного опыта (XP), ударного режима (стриков),
-            пройденных тем, результатов квизов и очереди повторений SM-2. Это
-            действие нельзя отменить.
+            истории обучения: накопленного опыта (XP), ударного режима
+            (стриков), пройденных тем, результатов квизов и очереди повторений
+            SM-2. Это действие нельзя отменить.
           </p>
 
           <form onSubmit={handleDeleteAccount} className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-text-secondary">
                 Для подтверждения введите слово{" "}
-                <span className="font-bold text-red-400 select-all">УДАЛИТЬ</span>:
+                <span className="font-bold text-red-400 select-all">
+                  УДАЛИТЬ
+                </span>
+                :
               </label>
               <Input
                 type="text"
