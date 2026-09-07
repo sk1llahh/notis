@@ -2,11 +2,13 @@
 
 import React, { useState, useRef, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   leaveCourseAction,
   resetCourseProgressAction,
 } from "@/server/actions/course-enrollment-actions";
 import { Button, Input, Card, Badge } from "@/shared/ui";
+import { ROUTES } from "@/shared/config";
 import {
   Settings2,
   RotateCcw,
@@ -14,6 +16,7 @@ import {
   X,
   AlertTriangle,
   AlertCircle,
+  Pencil,
 } from "lucide-react";
 
 export interface CourseOptionsMenuProps {
@@ -115,6 +118,15 @@ export function CourseOptionsMenu({
             </div>
 
             <div className="space-y-0.5 py-1">
+              {/* Studio Editor Link */}
+              <Link
+                href={ROUTES.STUDIO(courseSlug)}
+                className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-xs text-text-secondary hover:text-text-primary hover:bg-surface-card transition-colors cursor-pointer text-left"
+              >
+                <Pencil className="w-3.5 h-3.5 text-status-diff" />
+                <span>Студия (импорт тем)</span>
+              </Link>
+
               {/* Reset Progress Option */}
               <button
                 type="button"

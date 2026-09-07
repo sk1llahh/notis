@@ -100,6 +100,7 @@ function StudioCanvasInner({ initialData }: StudioCanvasProps) {
 
   // Import topic modal state
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importModalTab, setImportModalTab] = useState<"file" | "text" | "ai">("file");
 
   // Handle imported topic from JSON manifest
   const handleTopicImported = useCallback(
@@ -609,10 +610,26 @@ function StudioCanvasInner({ initialData }: StudioCanvasProps) {
             variant="secondary"
             size="sm"
             leftIcon={<Upload className="w-3.5 h-3.5" />}
-            onClick={() => setIsImportModalOpen(true)}
+            onClick={() => {
+              setImportModalTab("file");
+              setIsImportModalOpen(true);
+            }}
             title="Импорт темы из JSON (со статьей, квизом и флешкартами)"
           >
             Импорт темы
+          </Button>
+
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<Sparkles className="w-3.5 h-3.5 text-purple-400" />}
+            onClick={() => {
+              setImportModalTab("ai");
+              setIsImportModalOpen(true);
+            }}
+            title="Сгенерировать полную тему с помощью Google Gemini"
+          >
+            AI Генерация
           </Button>
 
           <Button
@@ -825,6 +842,7 @@ function StudioCanvasInner({ initialData }: StudioCanvasProps) {
         courseSlug={course.slug}
         tiers={tiers}
         onTopicImported={handleTopicImported}
+        defaultTab={importModalTab}
       />
     </div>
   );

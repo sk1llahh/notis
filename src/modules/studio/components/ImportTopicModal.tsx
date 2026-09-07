@@ -42,6 +42,7 @@ export interface ImportTopicModalProps {
   courseSlug: string;
   tiers: ImportTopicModalTierItem[];
   onTopicImported: (data: ImportTopicOutput) => void;
+  defaultTab?: "file" | "text" | "ai";
 }
 
 export const SAMPLE_TOPIC_JSON = JSON.stringify(
@@ -188,8 +189,9 @@ export function ImportTopicModal({
   courseSlug,
   tiers,
   onTopicImported,
+  defaultTab = "file",
 }: ImportTopicModalProps) {
-  const [activeTab, setActiveTab] = useState<"file" | "text" | "ai">("file");
+  const [activeTab, setActiveTab] = useState<"file" | "text" | "ai">(defaultTab);
   const [selectedTierId, setSelectedTierId] = useState<string>(
     tiers[0]?.id ?? ""
   );
@@ -242,16 +244,19 @@ export function ImportTopicModal({
     }
   };
 
-  // Sync default tier when tiers update or modal opens
+  // Sync default tier and active tab when tiers update or modal opens
   useEffect(() => {
     if (isOpen) {
+      if (defaultTab) {
+        setActiveTab(defaultTab);
+      }
       if (tiers.length > 0 && !selectedTierId) {
         setSelectedTierId(tiers[0].id);
       }
       setServerError(null);
       setSuccessMessage(null);
     }
-  }, [isOpen, tiers, selectedTierId]);
+  }, [isOpen, defaultTab, tiers, selectedTierId]);
 
   // Handle ESC key
   useEffect(() => {
