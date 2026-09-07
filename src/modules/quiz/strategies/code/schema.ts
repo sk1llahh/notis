@@ -8,6 +8,8 @@ export const testCaseSchema = z.object({
   input: z.array(z.any()),
   expected: z.any(),
   description: z.string().optional(),
+  isHidden: z.boolean().optional(),
+  isPrivate: z.boolean().optional(),
 });
 
 /**

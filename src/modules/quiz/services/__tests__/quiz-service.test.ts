@@ -191,4 +191,33 @@ describe("Quiz Evaluation Service", () => {
     assert.equal(result.passed, true);
     assert.equal(result.correctQuestions, 3);
   });
+
+  test("7. CODE question evaluates against both public and hidden test cases", () => {
+    const codeQuestions: EvaluatableQuestion[] = [
+      {
+        id: "q-code-hidden",
+        type: "CODE",
+        options: [],
+        correctAnswerIndexes: [],
+        testCases: [
+          { name: "public-test", input: [2], expected: 4, isHidden: false },
+          { name: "hidden-test-edge-case", input: [0], expected: 0, isHidden: true },
+        ],
+      },
+    ];
+
+    // Correct solution handles both
+    const correctResult = calculateQuizResult(codeQuestions, {
+      answers: { "q-code-hidden": "function solution(x) { return x * 2; }" },
+    });
+    assert.equal(correctResult.passed, true);
+    assert.equal(correctResult.score, 100);
+
+    // Hardcoded cheater solution only passes public test, fails hidden test
+    const cheaterResult = calculateQuizResult(codeQuestions, {
+      answers: { "q-code-hidden": "function solution(x) { return 4; }" },
+    });
+    assert.equal(cheaterResult.passed, false);
+    assert.equal(cheaterResult.score, 0);
+  });
 });

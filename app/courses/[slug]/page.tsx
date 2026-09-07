@@ -12,7 +12,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
 
   // In Next.js RSC, direct call to service layer with authenticated user session
   const graphData = await getCourseRoadmapGraph(slug, {
-    userId: session.user?.id,
+    userId: session?.user?.id,
   });
 
   if (!graphData) {

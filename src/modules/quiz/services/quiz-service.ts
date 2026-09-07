@@ -194,7 +194,15 @@ export async function getQuizForTopic(
         codeTemplate = config.codeTemplate;
       }
       if (Array.isArray(config.testCases)) {
-        testCases = config.testCases as TestCase[];
+        // Zero-Trust: filter out private / hidden test cases so student client only receives public tests
+        testCases = (config.testCases as TestCase[])
+          .filter((tc) => !tc.isHidden && !tc.isPrivate)
+          .map((tc) => ({
+            name: tc.name,
+            input: tc.input,
+            expected: tc.expected,
+            description: tc.description,
+          }));
       }
     }
 

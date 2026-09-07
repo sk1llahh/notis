@@ -3,6 +3,8 @@ export interface TestCase {
   input: any[];
   expected: any;
   description?: string;
+  isHidden?: boolean;
+  isPrivate?: boolean;
 }
 
 export interface TestResult {

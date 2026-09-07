@@ -17,7 +17,7 @@ export default async function StudioPage({ params }: StudioPageProps) {
 
   // 1. RBAC Guard check
   try {
-    await assertCourseAuthor(slug, session.user?.id);
+    await assertCourseAuthor(slug, session?.user?.id);
   } catch (error) {
     if (error instanceof ActionException) {
       if (error.code === "UNAUTHORIZED") {

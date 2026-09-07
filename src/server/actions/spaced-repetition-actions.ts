@@ -64,7 +64,17 @@ export const reviewCardAction = createSafeAction(
       );
     }
 
-    // 4. Calculate SM-2 update
+    const now = new Date();
+
+    // 4. Anti-Exploit Guard: reject early reviews to prevent infinite XP farming
+    if (card.reviewDueAt && card.reviewDueAt.getTime() > now.getTime()) {
+      throw new ActionException(
+        "BAD_REQUEST",
+        "Срок повторения для этой карточки еще не наступил"
+      );
+    }
+
+    // 5. Calculate SM-2 update
     const sm2Result = calculateSM2({
       quality: input.quality,
       repetitions: card.repetitionCount,
@@ -72,10 +82,9 @@ export const reviewCardAction = createSafeAction(
       easinessFactor: card.easeFactor,
     });
 
-    const now = new Date();
     const XP_EARNED = 5;
 
-    // 5. Atomic Transaction: Card update + History record + XP increment
+    // 6. Atomic Transaction: Card update + History record + XP increment
     await prisma.$transaction(async (tx) => {
       // 5.1 Update SM-2 parameters on card
       await tx.userQuestionReview.update({

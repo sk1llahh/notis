@@ -172,7 +172,30 @@ export const deleteTopicAction = createSafeAction(
 
     // 3. Cascade cleanup in atomic transaction
     await prisma.$transaction(async (tx) => {
-      // Remove graph connections
+      // 3.1 Find all questions belonging to this topic
+      const questions = await tx.question.findMany({
+        where: { topicId: input.topicId },
+        select: { id: true },
+      });
+      const questionIds = questions.map((q) => q.id);
+
+      if (questionIds.length > 0) {
+        // Delete student quiz attempts and flashcard review queues to prevent P2003 Restrict violations
+        await tx.userQuizAttempt.deleteMany({
+          where: { questionId: { in: questionIds } },
+        });
+        await tx.userQuestionReview.deleteMany({
+          where: { questionId: { in: questionIds } },
+        });
+        await tx.questionTranslation.deleteMany({
+          where: { questionId: { in: questionIds } },
+        });
+        await tx.question.deleteMany({
+          where: { id: { in: questionIds } },
+        });
+      }
+
+      // 3.2 Remove graph connections
       await tx.topicPrerequisite.deleteMany({
         where: {
           OR: [
@@ -182,7 +205,7 @@ export const deleteTopicAction = createSafeAction(
         },
       });
 
-      // Remove UI layouts
+      // 3.3 Remove UI layouts
       await tx.defaultGraphLayout.deleteMany({
         where: { topicId: input.topicId },
       });
@@ -191,12 +214,20 @@ export const deleteTopicAction = createSafeAction(
         where: { topicId: input.topicId },
       });
 
-      // Remove user progress
+      // 3.4 Remove user progress
       await tx.userProgress.deleteMany({
         where: { topicId: input.topicId },
       });
 
-      // Remove topic (cascades translations, questions, etc.)
+      // 3.5 Remove topic translations & tags
+      await tx.topicTag.deleteMany({
+        where: { topicId: input.topicId },
+      });
+      await tx.topicTranslation.deleteMany({
+        where: { topicId: input.topicId },
+      });
+
+      // 3.6 Remove topic
       await tx.topic.delete({
         where: { id: input.topicId },
       });

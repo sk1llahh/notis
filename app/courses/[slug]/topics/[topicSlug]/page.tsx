@@ -16,7 +16,7 @@ export default async function TopicPage({ params }: TopicPageProps) {
 
   // RSC direct server call to domain service layer with authenticated session
   const topic = await getTopicDetails(slug, topicSlug, {
-    userId: session.user?.id,
+    userId: session?.user?.id,
   });
 
   if (!topic) {

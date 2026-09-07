@@ -214,9 +214,20 @@ export const deleteQuizQuestionAction = createSafeAction(
     // 1. RBAC Guard
     await assertCourseAuthor(input.courseSlug, session.user?.id);
 
-    // 2. Delete question
-    await prisma.question.delete({
-      where: { id: input.questionId },
+    // 2. Cascade cleanup inside transaction to prevent P2003 Restrict violations
+    await prisma.$transaction(async (tx) => {
+      await tx.userQuizAttempt.deleteMany({
+        where: { questionId: input.questionId },
+      });
+      await tx.userQuestionReview.deleteMany({
+        where: { questionId: input.questionId },
+      });
+      await tx.questionTranslation.deleteMany({
+        where: { questionId: input.questionId },
+      });
+      await tx.question.delete({
+        where: { id: input.questionId },
+      });
     });
 
     // 3. Cache revalidation

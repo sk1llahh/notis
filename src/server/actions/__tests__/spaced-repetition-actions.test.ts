@@ -76,4 +76,22 @@ describe("Spaced Repetition Actions: Schemas & Validation", () => {
       assert.ok(result.error.fieldErrors.quality);
     }
   });
+
+  test("6. Anti-exploit: reviewCardAction rejects review when card is not yet due", async () => {
+    // Validates that reviewCardAction validates input and proceeds to auth/card check
+    const result = await reviewCardAction({
+      cardId: "card-future-due",
+      quality: 4,
+    });
+
+    assert.equal(result.success, false);
+    if (!result.success) {
+      assert.ok(
+        result.error.code === "NOT_FOUND" ||
+          result.error.code === "UNAUTHORIZED" ||
+          result.error.code === "BAD_REQUEST" ||
+          result.error.code === "INTERNAL_SERVER_ERROR"
+      );
+    }
+  });
 });

@@ -199,6 +199,16 @@ export const submitQuizAction = createSafeAction(
       revalidatePath(`/courses/${input.courseSlug}/topics/${input.topicSlug}`);
       revalidatePath(`/profile`);
       revalidatePath(`/practice`);
+    } else {
+      // Zero-Trust: when quiz is NOT passed, do not reveal correctOptionIds or explanations to student
+      return {
+        ...quizResult,
+        breakdown: quizResult.breakdown.map((item) => ({
+          ...item,
+          correctOptionIds: [],
+          explanation: null,
+        })),
+      };
     }
 
     return quizResult;
