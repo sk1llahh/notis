@@ -8,7 +8,10 @@ export {
   type SM2Output,
 } from "./services/sm2-algorithm";
 
-export { getDueFlashcards } from "./services/spaced-repetition-service";
+export {
+  getDueFlashcards,
+  type GetDueFlashcardsOptions,
+} from "./services/spaced-repetition-service";
 export {
   enrollTopicIntoReviewQueue,
   type EnrollTopicResult,

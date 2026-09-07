@@ -20,8 +20,10 @@ import { CourseOptionsMenu } from "./controls/CourseOptionsMenu";
 import { RoadmapDrawer } from "./drawer/roadmap-drawer";
 import { useRoadmapStore } from "../hooks/use-roadmap-store";
 import type { RoadmapGraphDTO, TopicNodePayload } from "../types";
+import Link from "next/link";
 import { Badge, Button } from "@/shared/ui";
-import { Filter, Eye, Award } from "lucide-react";
+import { Filter, Eye, Award, GraduationCap } from "lucide-react";
+import { ROUTES } from "@/shared/config";
 
 const nodeTypes = {
   topicNode: TopicNode,
@@ -146,6 +148,18 @@ function RoadmapCanvasInner({ initialData }: RoadmapCanvasProps) {
         >
           {focusMode === "UNLOCKED_ONLY" ? "Только открытые" : "Все темы"}
         </Button>
+
+        {/* Practice Flashcards Link */}
+        <Link href={`${ROUTES.PRACTICE}?course=${initialData.course.slug}`}>
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<GraduationCap className="w-3.5 h-3.5 text-status-available" />}
+            title="Повторить карточки по этому курсу"
+          >
+            Повторение
+          </Button>
+        </Link>
 
         {/* Course Options (Enrolled Students Only) */}
         {initialData.course.isEnrolled && (

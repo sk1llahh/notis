@@ -4,6 +4,9 @@ export interface ReviewCardDTO {
   id: string; // UserQuestionReview.id
   topicId: string;
   topicTitle: string;
+  courseId?: string;
+  courseSlug?: string;
+  courseTitle?: string;
   front: string;
   back: string;
   codeSnippet?: string;

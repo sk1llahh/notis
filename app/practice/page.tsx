@@ -21,13 +21,24 @@ export const metadata = {
 };
 
 
-export default async function PracticePage() {
+interface PracticePageProps {
+  searchParams?: Promise<{
+    course?: string;
+  }>;
+}
+
+export default async function PracticePage({
+  searchParams,
+}: PracticePageProps) {
   const session = await getAuthSession();
 
   // 1. Auth Guard
   if (!session?.user) {
     redirect(ROUTES.HOME);
   }
+
+  const params = searchParams ? await searchParams : undefined;
+  const courseSlug = params?.course;
 
   // 2. Fetch due flashcards for the current user
   const dueCards = await getDueFlashcards(session.user.id);
@@ -114,17 +125,10 @@ export default async function PracticePage() {
              ACTIVE PRACTICE DECK
              ================================================================= */
           <div className="w-full flex flex-col items-center">
-            <div className="text-center mb-4">
-              <h2 className="text-lg font-bold text-text-primary">
-                Тренировка памяти
-              </h2>
-              <p className="text-xs text-text-muted mt-0.5">
-                Оценивайте честно: это помогает алгоритму рассчитать идеальный
-                интервал
-              </p>
-            </div>
-
-            <PracticeDeck initialCards={dueCards} />
+            <PracticeDeck
+              initialCards={dueCards}
+              initialCourseFilter={courseSlug}
+            />
           </div>
         )}
       </div>

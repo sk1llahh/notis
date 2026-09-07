@@ -1,5 +1,13 @@
 import { prisma } from "@/server/db";
+import type { Prisma } from "@prisma/client";
 import type { ReviewCardDTO } from "../types";
+
+export type PrismaDbClient = Prisma.TransactionClient | typeof prisma;
+
+export interface GetDueFlashcardsOptions {
+  limit?: number;
+  courseSlug?: string;
+}
 
 /**
  * Server Service: Fetches flashcards that are due for review for the user.
@@ -8,16 +16,43 @@ import type { ReviewCardDTO } from "../types";
  */
 export async function getDueFlashcards(
   userId: string,
-  limit = 20
+  options?: number | GetDueFlashcardsOptions,
+  dbClient?: PrismaDbClient
 ): Promise<ReviewCardDTO[]> {
+  const db = (dbClient ?? prisma) as Prisma.TransactionClient;
   const now = new Date();
+  const limit = typeof options === "number" ? options : options?.limit ?? 20;
+  const courseSlug = typeof options === "object" ? options?.courseSlug : undefined;
+
+  // Base where condition for due reviews
+  const whereCondition: {
+    userId: string;
+    OR: ({ reviewDueAt: { lte: Date } } | { reviewDueAt: null })[];
+    question?: {
+      topic: {
+        course: {
+          slug: string;
+        };
+      };
+    };
+  } = {
+    userId,
+    OR: [{ reviewDueAt: { lte: now } }, { reviewDueAt: null }],
+  };
+
+  if (courseSlug) {
+    whereCondition.question = {
+      topic: {
+        course: {
+          slug: courseSlug,
+        },
+      },
+    };
+  }
 
   // 1. Fetch existing due cards
-  let reviews = await prisma.userQuestionReview.findMany({
-    where: {
-      userId,
-      OR: [{ reviewDueAt: { lte: now } }, { reviewDueAt: null }],
-    },
+  let reviews = await db.userQuestionReview.findMany({
+    where: whereCondition,
     include: {
       question: {
         include: {
@@ -25,6 +60,11 @@ export async function getDueFlashcards(
           topic: {
             include: {
               translations: true,
+              course: {
+                include: {
+                  translations: true,
+                },
+              },
             },
           },
         },
@@ -38,34 +78,45 @@ export async function getDueFlashcards(
 
   // 2. If no due cards, check if user needs auto-initialization from completed topics
   if (reviews.length === 0) {
-    const totalCount = await prisma.userQuestionReview.count({
-      where: { userId },
+    const totalCount = await db.userQuestionReview.count({
+      where: courseSlug
+        ? {
+            userId,
+            question: {
+              topic: {
+                course: {
+                  slug: courseSlug,
+                },
+              },
+            },
+          }
+        : { userId },
     });
 
     if (totalCount === 0) {
-      // Find all completed topics for the user
-      const completedProgress = await prisma.userProgress.findMany({
+      // Find completed topics for the user
+      const completedProgress = await db.userProgress.findMany({
         where: {
           userId,
           status: "COMPLETED",
+          ...(courseSlug
+            ? {
+                topic: {
+                  course: {
+                    slug: courseSlug,
+                  },
+                },
+              }
+            : {}),
         },
         select: { topicId: true },
       });
 
-      let topicIds = completedProgress.map((p) => p.topicId);
+      const topicIds = completedProgress.map((p) => p.topicId);
 
-      // Fallback in dev: if no completed topics, use topics of published courses with questions
-      if (topicIds.length === 0) {
-        const anyQuestions = await prisma.question.findMany({
-          where: { isArchived: false },
-          select: { topicId: true },
-          take: 5,
-        });
-        topicIds = Array.from(new Set(anyQuestions.map((q) => q.topicId)));
-      }
-
+      // Only seed if user actually has completed topics in their learning history
       if (topicIds.length > 0) {
-        const questionsToSeed = await prisma.question.findMany({
+        const questionsToSeed = await db.question.findMany({
           where: {
             topicId: { in: topicIds },
             isArchived: false,
@@ -74,7 +125,7 @@ export async function getDueFlashcards(
         });
 
         if (questionsToSeed.length > 0) {
-          await prisma.userQuestionReview.createMany({
+          await db.userQuestionReview.createMany({
             data: questionsToSeed.map((q) => ({
               userId,
               questionId: q.id,
@@ -87,11 +138,8 @@ export async function getDueFlashcards(
           });
 
           // Re-fetch initialized reviews
-          reviews = await prisma.userQuestionReview.findMany({
-            where: {
-              userId,
-              OR: [{ reviewDueAt: { lte: now } }, { reviewDueAt: null }],
-            },
+          reviews = await db.userQuestionReview.findMany({
+            where: whereCondition,
             include: {
               question: {
                 include: {
@@ -99,6 +147,11 @@ export async function getDueFlashcards(
                   topic: {
                     include: {
                       translations: true,
+                      course: {
+                        include: {
+                          translations: true,
+                        },
+                      },
                     },
                   },
                 },
@@ -119,6 +172,8 @@ export async function getDueFlashcards(
     const q = r.question;
     const qTrans = q.translations[0];
     const topicTrans = q.topic.translations[0];
+    const course = q.topic.course;
+    const courseTrans = course?.translations[0];
 
     const rawOpts = qTrans?.options;
     const options = Array.isArray(rawOpts) ? rawOpts : [];
@@ -162,6 +217,9 @@ export async function getDueFlashcards(
       id: r.id,
       topicId: q.topicId,
       topicTitle: topicTrans?.title || "Тема курса",
+      courseId: course?.id,
+      courseSlug: course?.slug,
+      courseTitle: courseTrans?.title || "Курс",
       front: qTrans?.prompt || "Вопрос",
       back: backText || "Ответ не указан",
       codeSnippet,
