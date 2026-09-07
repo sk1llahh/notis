@@ -27,6 +27,7 @@ export const env = createEnv({
     GITHUB_CLIENT_SECRET: z.string().optional(),
     GOOGLE_CLIENT_ID: z.string().optional(),
     GOOGLE_CLIENT_SECRET: z.string().optional(),
+    GEMINI_API_KEY: z.string().optional(),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),

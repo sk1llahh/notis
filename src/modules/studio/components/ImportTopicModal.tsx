@@ -3,12 +3,12 @@
 import React, { useState, useEffect, useTransition, useRef } from "react";
 import { Button, Badge } from "@/shared/ui";
 import { importTopicAction } from "@/server/actions/import-topic-actions";
+import { generateTopicDraftAction } from "@/server/actions/ai-topic-actions";
 import {
   importedTopicPayloadSchema,
   type ImportedTopicPayload,
   type ImportTopicOutput,
 } from "@/server/actions/import-topic-actions.schemas";
-import type { CourseTierDTO } from "@/server/actions/admin-tier-actions.schemas";
 import {
   Upload,
   FileText,
@@ -19,6 +19,14 @@ import {
   X,
   FileUp,
   Layers,
+  Key,
+  Eye,
+  EyeOff,
+  Cpu,
+  Wand2,
+  BookOpen,
+  Loader2,
+  ExternalLink,
 } from "lucide-react";
 
 export interface ImportTopicModalTierItem {
@@ -167,6 +175,13 @@ $$|\\Phi^+\\rangle = \\frac{|00\\rangle + |11\\rangle}{\\sqrt{2}}$$`,
   2
 );
 
+const GENERATION_PHASES = [
+  "Анализ концепции и проектирование дидактической структуры...",
+  "Генерация фундаментального лонгрида, формул KaTeX и диаграмм Mermaid...",
+  "Разработка полиморфного квиза (5 типов вопросов) и тестов для кода...",
+  "Формирование карточек интервального повторения SM-2...",
+];
+
 export function ImportTopicModal({
   isOpen,
   onClose,
@@ -174,7 +189,7 @@ export function ImportTopicModal({
   tiers,
   onTopicImported,
 }: ImportTopicModalProps) {
-  const [activeTab, setActiveTab] = useState<"file" | "text">("file");
+  const [activeTab, setActiveTab] = useState<"file" | "text" | "ai">("file");
   const [selectedTierId, setSelectedTierId] = useState<string>(
     tiers[0]?.id ?? ""
   );
@@ -189,8 +204,43 @@ export function ImportTopicModal({
   const [parsedPreview, setParsedPreview] =
     useState<ImportedTopicPayload | null>(null);
 
+  // AI Generator Form State
+  const [aiTopicTitle, setAiTopicTitle] = useState("");
+  const [aiDifficulty, setAiDifficulty] = useState<
+    "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "EXPERT"
+  >("INTERMEDIATE");
+  const [aiFocusAreas, setAiFocusAreas] = useState("");
+  const [aiTargetAudience, setAiTargetAudience] = useState("");
+  const [aiSourceMaterial, setAiSourceMaterial] = useState("");
+  const [aiModel, setAiModel] = useState("gemini-2.5-flash");
+  const [customApiKey, setCustomApiKey] = useState("");
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationPhase, setGenerationPhase] = useState(0);
+
   const [isSubmitting, startSubmitting] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load saved custom API key from localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedKey = localStorage.getItem("notis_gemini_api_key");
+      if (savedKey) {
+        setCustomApiKey(savedKey);
+      }
+    }
+  }, []);
+
+  const handleApiKeyChange = (val: string) => {
+    setCustomApiKey(val);
+    if (typeof window !== "undefined") {
+      if (val.trim()) {
+        localStorage.setItem("notis_gemini_api_key", val.trim());
+      } else {
+        localStorage.removeItem("notis_gemini_api_key");
+      }
+    }
+  };
 
   // Sync default tier when tiers update or modal opens
   useEffect(() => {
@@ -208,14 +258,14 @@ export function ImportTopicModal({
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !isSubmitting) {
+      if (e.key === "Escape" && !isSubmitting && !isGenerating) {
         onClose();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose, isSubmitting]);
+  }, [isOpen, onClose, isSubmitting, isGenerating]);
 
   // Validate JSON on content change
   useEffect(() => {
@@ -319,6 +369,58 @@ export function ImportTopicModal({
     }
   };
 
+  // AI Topic Generation Handler
+  const handleGenerateAI = async () => {
+    const trimmedTitle = aiTopicTitle.trim();
+    if (!trimmedTitle || trimmedTitle.length < 2) {
+      setServerError("Укажите название темы или концепцию (от 2 символов)");
+      return;
+    }
+
+    setIsGenerating(true);
+    setServerError(null);
+    setSuccessMessage(null);
+    setGenerationPhase(0);
+
+    const timer = setInterval(() => {
+      setGenerationPhase((p) => (p < GENERATION_PHASES.length - 1 ? p + 1 : p));
+    }, 4500);
+
+    try {
+      const result = await generateTopicDraftAction({
+        courseSlug,
+        topicTitle: trimmedTitle,
+        difficulty: aiDifficulty,
+        focusAreas: aiFocusAreas.trim() || undefined,
+        targetAudience: aiTargetAudience.trim() || undefined,
+        sourceMaterial: aiSourceMaterial.trim() || undefined,
+        customApiKey: customApiKey.trim() || undefined,
+        model: aiModel,
+      });
+
+      if (!result.success) {
+        setServerError(result.error.message || "Ошибка генерации темы через ИИ");
+        return;
+      }
+
+      const formattedJson = JSON.stringify(result.data, null, 2);
+      setRawJson(formattedJson);
+      setFileName(`ai-${result.data.slug}.json`);
+      setFileSize(new Blob([formattedJson]).size);
+      setParsedPreview(result.data);
+      setSuccessMessage(
+        `Тема «${result.data.title}» успешно сгенерирована! Проверьте содержание в редакторе или сразу нажмите «Импортировать тему».`
+      );
+    } catch (err: unknown) {
+      setServerError(
+        `Сбой генерации темы: ${err instanceof Error ? err.message : String(err)}`
+      );
+    } finally {
+      clearInterval(timer);
+      setIsGenerating(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setServerError(null);
@@ -330,7 +432,7 @@ export function ImportTopicModal({
     }
 
     if (!rawJson.trim()) {
-      setServerError("Предоставьте JSON-манифест темы");
+      setServerError("Предоставьте или сгенерируйте JSON-манифест темы");
       return;
     }
 
@@ -368,7 +470,7 @@ export function ImportTopicModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div
         className="fixed inset-0"
-        onClick={() => !isSubmitting && onClose()}
+        onClick={() => !isSubmitting && !isGenerating && onClose()}
         aria-hidden="true"
       />
 
@@ -381,13 +483,13 @@ export function ImportTopicModal({
             </div>
             <div>
               <h3 className="text-base font-bold text-text-primary flex items-center gap-2">
-                Импорт темы в курс
+                Импорт и генерация тем
                 <Badge variant="outline" size="sm">
-                  JSON / Markdown
+                  JSON / KaTeX / ИИ
                 </Badge>
               </h3>
               <p className="text-[11px] text-text-muted">
-                Загрузите тему со статьей (Markdown, KaTeX, Mermaid), вопросами квиза и флешкартами
+                Создайте тему из файла, текста или сгенерируйте полную тему через Google Gemini
               </p>
             </div>
           </div>
@@ -399,15 +501,15 @@ export function ImportTopicModal({
               size="sm"
               leftIcon={<Sparkles className="w-3.5 h-3.5 text-accent-primary" />}
               onClick={handleInsertTemplate}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isGenerating}
               title="Заполнить готовым примером квантовой темы"
             >
-              Вставить пример шаблона
+              Пример шаблона
             </Button>
             <button
               type="button"
               onClick={onClose}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isGenerating}
               className="p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
@@ -422,7 +524,7 @@ export function ImportTopicModal({
             <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 flex items-start gap-2.5 text-xs text-red-400">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <div>
-                <span className="font-semibold">Ошибка импорта: </span>
+                <span className="font-semibold">Внимание: </span>
                 <span>{serverError}</span>
               </div>
             </div>
@@ -451,7 +553,7 @@ export function ImportTopicModal({
               <select
                 value={selectedTierId}
                 onChange={(e) => setSelectedTierId(e.target.value)}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isGenerating}
                 className="w-full px-3 py-2 rounded-lg bg-surface-elevated border border-border-subtle text-text-primary text-xs focus:outline-none focus:border-accent-primary transition-colors cursor-pointer"
               >
                 {tiers.map((t) => (
@@ -488,6 +590,21 @@ export function ImportTopicModal({
             >
               <Code className="w-3.5 h-3.5" />
               Текст / JSON
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("ai")}
+              className={`flex items-center gap-2 px-4 py-2 text-xs font-medium border-b-2 transition-all cursor-pointer ${
+                activeTab === "ai"
+                  ? "border-accent-primary text-text-primary bg-surface-elevated/40"
+                  : "border-transparent text-text-muted hover:text-text-secondary"
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-accent-primary" />
+              Генерация с ИИ
+              <span className="px-1.5 py-0.5 text-[9px] rounded font-mono bg-accent-primary/15 text-accent-primary border border-accent-primary/20">
+                Gemini
+              </span>
             </button>
           </div>
 
@@ -561,7 +678,7 @@ export function ImportTopicModal({
           {activeTab === "text" && (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-[11px] text-text-muted">
-                <span>Вставьте или отредактируйте JSON манифеста:</span>
+                <span>Вставьте или отредактируйте JSON манифеста темы:</span>
                 {rawJson && (
                   <button
                     type="button"
@@ -579,11 +696,212 @@ export function ImportTopicModal({
                   setFileName(null);
                   setServerError(null);
                 }}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isGenerating}
                 rows={12}
                 placeholder='{\n  "title": "...",\n  "slug": "...",\n  "difficulty": "BEGINNER",\n  "description": "# Markdown..."\n}'
                 className="w-full p-3 rounded-lg bg-surface-elevated border border-border-subtle text-text-primary font-mono text-xs focus:outline-none focus:border-accent-primary transition-colors resize-y leading-relaxed"
               />
+            </div>
+          )}
+
+          {/* Tab 3: AI Topic Generator */}
+          {activeTab === "ai" && (
+            <div className="space-y-4">
+              {/* Optional Custom Gemini API Key Card */}
+              <div className="p-3 rounded-lg bg-surface-elevated border border-border-subtle space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
+                    <Key className="w-3.5 h-3.5 text-accent-primary" />
+                    Персональный Gemini API Key (опционально)
+                  </label>
+                  <a
+                    href="https://aistudio.google.com/app/apikey"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] text-accent-primary hover:underline flex items-center gap-1"
+                  >
+                    Получить ключ
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+                <div className="relative">
+                  <input
+                    type={showApiKey ? "text" : "password"}
+                    value={customApiKey}
+                    onChange={(e) => handleApiKeyChange(e.target.value)}
+                    placeholder="AIzaSy... (сохраняется в вашем браузере)"
+                    className="w-full pl-3 pr-10 py-1.5 rounded-md bg-surface-canvas border border-border-subtle text-text-primary font-mono text-xs focus:outline-none focus:border-accent-primary"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    className="absolute right-2.5 top-2 text-text-muted hover:text-text-primary cursor-pointer"
+                  >
+                    {showApiKey ? (
+                      <EyeOff className="w-3.5 h-3.5" />
+                    ) : (
+                      <Eye className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                </div>
+                <p className="text-[10px] text-text-muted">
+                  Если поле пустое, будет использован системный ключ GEMINI_API_KEY из файла .env сервера.
+                </p>
+              </div>
+
+              {/* Topic Title & Difficulty Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2 space-y-1.5">
+                  <label className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
+                    <Wand2 className="w-3.5 h-3.5 text-text-muted" />
+                    Название темы / концепция
+                    <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={aiTopicTitle}
+                    onChange={(e) => setAiTopicTitle(e.target.value)}
+                    disabled={isGenerating}
+                    placeholder="например: Красно-черные деревья: инварианты и балансировка"
+                    className="w-full px-3 py-2 rounded-lg bg-surface-elevated border border-border-subtle text-text-primary text-xs focus:outline-none focus:border-accent-primary"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-text-secondary">
+                    Сложность
+                  </label>
+                  <select
+                    value={aiDifficulty}
+                    onChange={(e) => setAiDifficulty(e.target.value as any)}
+                    disabled={isGenerating}
+                    className="w-full px-3 py-2 rounded-lg bg-surface-elevated border border-border-subtle text-text-primary text-xs focus:outline-none focus:border-accent-primary cursor-pointer"
+                  >
+                    <option value="BEGINNER">Базовый (Beginner)</option>
+                    <option value="INTERMEDIATE">Средний (Intermediate)</option>
+                    <option value="ADVANCED">Продвинутый (Advanced)</option>
+                    <option value="EXPERT">Экспертный (Expert)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Focus Areas & Target Audience */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-text-secondary">
+                    Ключевые акценты и требования
+                  </label>
+                  <input
+                    type="text"
+                    value={aiFocusAreas}
+                    onChange={(e) => setAiFocusAreas(e.target.value)}
+                    disabled={isGenerating}
+                    placeholder="например: Разобрать левые и правые вращения, доказать логарифмическую высоту"
+                    className="w-full px-3 py-2 rounded-lg bg-surface-elevated border border-border-subtle text-text-primary text-xs focus:outline-none focus:border-accent-primary"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-text-secondary">
+                    Целевая аудитория (опционально)
+                  </label>
+                  <input
+                    type="text"
+                    value={aiTargetAudience}
+                    onChange={(e) => setAiTargetAudience(e.target.value)}
+                    disabled={isGenerating}
+                    placeholder="например: Студенты 2 курса CS, разработчики высоконагруженных систем"
+                    className="w-full px-3 py-2 rounded-lg bg-surface-elevated border border-border-subtle text-text-primary text-xs focus:outline-none focus:border-accent-primary"
+                  />
+                </div>
+              </div>
+
+              {/* Source Material Notes */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
+                  <BookOpen className="w-3.5 h-3.5 text-text-muted" />
+                  Исходный конспект / выдержки из книг (опционально)
+                </label>
+                <textarea
+                  value={aiSourceMaterial}
+                  onChange={(e) => setAiSourceMaterial(e.target.value)}
+                  disabled={isGenerating}
+                  rows={3}
+                  placeholder="Вставьте сюда черновик лекции, выдержку из статьи или свои заметки. ИИ структурирует их в полноценную тему..."
+                  className="w-full p-2.5 rounded-lg bg-surface-elevated border border-border-subtle text-text-primary text-xs focus:outline-none focus:border-accent-primary resize-y"
+                />
+              </div>
+
+              {/* Model Picker & Trigger Row */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <Cpu className="w-3.5 h-3.5 text-text-muted shrink-0" />
+                  <span className="text-xs text-text-muted">Модель:</span>
+                  <select
+                    value={aiModel}
+                    onChange={(e) => setAiModel(e.target.value)}
+                    disabled={isGenerating}
+                    className="px-2.5 py-1 rounded bg-surface-elevated border border-border-subtle text-text-primary text-xs focus:outline-none focus:border-accent-primary cursor-pointer"
+                  >
+                    <option value="gemini-2.5-flash">Gemini 2.5 Flash (быстрая)</option>
+                    <option value="gemini-1.5-pro">Gemini 1.5 Pro (глубокая)</option>
+                  </select>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  leftIcon={
+                    isGenerating ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5" />
+                    )
+                  }
+                  isLoading={isGenerating}
+                  disabled={isGenerating || !aiTopicTitle.trim()}
+                  onClick={handleGenerateAI}
+                  className="w-full sm:w-auto"
+                >
+                  {isGenerating ? "Генерация темы..." : "Сгенерировать полную тему"}
+                </Button>
+              </div>
+
+              {/* Animated Phase Progress while generating */}
+              {isGenerating && (
+                <div className="p-3.5 rounded-xl bg-accent-primary/10 border border-accent-primary/30 space-y-2.5 animate-in fade-in duration-200">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-accent-primary">
+                    <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                    <span>ИИ конструирует тему академического уровня...</span>
+                  </div>
+                  <div className="space-y-1.5 pl-6">
+                    {GENERATION_PHASES.map((phase, idx) => {
+                      const isPast = idx < generationPhase;
+                      const isCurrent = idx === generationPhase;
+                      return (
+                        <div
+                          key={phase}
+                          className={`text-xs flex items-center gap-2 transition-colors duration-300 ${
+                            isPast
+                              ? "text-status-completed"
+                              : isCurrent
+                              ? "text-text-primary font-medium"
+                              : "text-text-muted opacity-50"
+                          }`}
+                        >
+                          {isPast ? (
+                            <Check className="w-3 h-3 text-status-completed shrink-0" />
+                          ) : (
+                            <span className="w-1.5 h-1.5 rounded-full bg-accent-primary shrink-0" />
+                          )}
+                          <span>{phase}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -665,7 +983,7 @@ export function ImportTopicModal({
             variant="secondary"
             size="sm"
             onClick={onClose}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isGenerating}
           >
             Отмена
           </Button>
@@ -678,6 +996,7 @@ export function ImportTopicModal({
             isLoading={isSubmitting}
             disabled={
               isSubmitting ||
+              isGenerating ||
               !selectedTierId ||
               !parsedPreview ||
               Boolean(validationError)
