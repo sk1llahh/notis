@@ -22,6 +22,7 @@ import { TopicNode, TopicEdge, type TopicNodePayload, type TopicDifficulty } fro
 import { StudioTopicDrawer } from "./studio-topic-drawer";
 import { CourseSettingsModal } from "./CourseSettingsModal";
 import { CourseTiersModal } from "./CourseTiersModal";
+import { ImportTopicModal } from "./ImportTopicModal";
 import {
   updateNodePositionsAction,
   connectPrerequisiteAction,
@@ -29,6 +30,7 @@ import {
 } from "@/server/actions/studio-actions";
 import { createTopicAction } from "@/server/actions/studio-topic-lifecycle-actions";
 import type { CourseTierDTO } from "@/server/actions/admin-tier-actions.schemas";
+import type { ImportTopicOutput } from "@/server/actions/import-topic-actions.schemas";
 import { Badge, Button, Input } from "@/shared/ui";
 import { ROUTES } from "@/shared/config";
 import {
@@ -40,6 +42,7 @@ import {
   GitBranch,
   ArrowRight,
   Plus,
+  Upload,
   X,
   Settings,
   Layers,
@@ -73,7 +76,7 @@ function StudioCanvasInner({ initialData }: StudioCanvasProps) {
   const [connectionType, setConnectionType] = useState<ConnectionType>("REQUIRED");
   const [, startTransition] = useTransition();
 
-  const { getViewport } = useReactFlow();
+  const { getViewport, setCenter } = useReactFlow();
 
   // Drawer state
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
@@ -94,6 +97,72 @@ function StudioCanvasInner({ initialData }: StudioCanvasProps) {
   const [newTopicTitle, setNewTopicTitle] = useState("");
   const [newTopicError, setNewTopicError] = useState<string | null>(null);
   const [isCreatingTopic, startCreatingTopic] = useTransition();
+
+  // Import topic modal state
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+  // Handle imported topic from JSON manifest
+  const handleTopicImported = useCallback(
+    (imported: ImportTopicOutput) => {
+      const matchingTier =
+        tiers.find((t) => t.id === imported.tierId) || tiers[0];
+
+      const newNode: Node<TopicNodePayload> = {
+        id: imported.topicId,
+        type: "topicNode",
+        position: { x: imported.positionX, y: imported.positionY },
+        data: {
+          slug: imported.slug,
+          title: imported.title,
+          difficulty: imported.difficulty as TopicDifficulty,
+          status: "AVAILABLE",
+          isFreePreview: false,
+          tier: matchingTier
+            ? {
+                id: matchingTier.id,
+                slug: matchingTier.slug,
+                title: matchingTier.title,
+                badgeColor: matchingTier.badgeColor,
+                order: matchingTier.order,
+              }
+            : {
+                id: "default-tier",
+                slug: "default",
+                title: "Основной",
+                badgeColor: "#10b981",
+                order: 1,
+              },
+          tierName: matchingTier?.title ?? "Основной",
+          tierLevel: matchingTier?.order ?? 1,
+          progress: {
+            completedVersion: null,
+            currentVersion: 1,
+            hasUpdate: false,
+          },
+        },
+      };
+
+      setNodes((current) => [...current, newNode]);
+      setSyncStatus("SAVED");
+      setStatusMessage(`Тема «${imported.title}» импортирована`);
+      setTimeout(() => {
+        setSyncStatus((cur) => (cur === "SAVED" ? "IDLE" : cur));
+        setStatusMessage("");
+      }, 3000);
+
+      try {
+        setCenter(imported.positionX + 110, imported.positionY + 50, {
+          duration: 800,
+          zoom: 1,
+        });
+      } catch {
+        // Ignore if setCenter isn't available
+      }
+
+      setSelectedTopicId(imported.topicId);
+    },
+    [tiers, setNodes, setCenter]
+  );
 
   // Handle topic creation directly on canvas
   const handleCreateTopic = (e: React.FormEvent) => {
@@ -539,6 +608,16 @@ function StudioCanvasInner({ initialData }: StudioCanvasProps) {
           <Button
             variant="secondary"
             size="sm"
+            leftIcon={<Upload className="w-3.5 h-3.5" />}
+            onClick={() => setIsImportModalOpen(true)}
+            title="Импорт темы из JSON (со статьей, квизом и флешкартами)"
+          >
+            Импорт темы
+          </Button>
+
+          <Button
+            variant="secondary"
+            size="sm"
             leftIcon={<Layers className="w-3.5 h-3.5" />}
             onClick={() => setIsTiersModalOpen(true)}
             title="Уровни и модули курса"
@@ -737,6 +816,15 @@ function StudioCanvasInner({ initialData }: StudioCanvasProps) {
           setCourseDescription(description);
           setCoursePublished(isPublished);
         }}
+      />
+
+      {/* Import Topic Modal */}
+      <ImportTopicModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        courseSlug={course.slug}
+        tiers={tiers}
+        onTopicImported={handleTopicImported}
       />
     </div>
   );

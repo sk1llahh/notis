@@ -8,7 +8,6 @@ import {
   GraduationCap,
   Flame,
   User,
-  Sparkles,
   LogOut,
   ChevronDown,
   Menu,
@@ -99,7 +98,6 @@ export function NavbarClient({ session, streak }: NavbarClientProps) {
 
   const user = session?.user;
   const isAuthenticated = Boolean(user);
-  const isAuthorOrAdmin = user?.role === "AUTHOR" || user?.role === "ADMIN";
   const isAdmin = user?.role === "ADMIN";
   const roleBadge = getRoleBadgeProps(user?.role);
 
@@ -241,16 +239,6 @@ export function NavbarClient({ session, streak }: NavbarClientProps) {
                       <span>Профиль и статистика</span>
                     </Link>
 
-                    {isAuthorOrAdmin && (
-                      <Link
-                        href={ROUTES.COURSES}
-                        className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-xs text-text-secondary hover:text-text-primary hover:bg-surface-card transition-colors"
-                      >
-                        <Sparkles className="w-3.5 h-3.5 text-status-available" />
-                        <span>Управление курсами</span>
-                      </Link>
-                    )}
-
                     {isAdmin && (
                       <Link
                         href={ROUTES.ADMIN_USERS}
@@ -359,16 +347,6 @@ export function NavbarClient({ session, streak }: NavbarClientProps) {
                   <User className="w-4 h-4 text-text-muted" />
                   <span>Профиль и статистика</span>
                 </Link>
-
-                {isAuthorOrAdmin && (
-                  <Link
-                    href={ROUTES.COURSES}
-                    className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors"
-                  >
-                    <Sparkles className="w-4 h-4 text-status-available" />
-                    <span>Управление курсами</span>
-                  </Link>
-                )}
 
                 {isAdmin && (
                   <Link
