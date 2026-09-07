@@ -1,26 +1,25 @@
-import { redirect } from "next/navigation";
-import Link from "next/link";
-import { getAuthSession } from "@/server/auth";
 import {
+  ActivityHeatmap,
+  CourseProgressCard,
   getUserProfileData,
   ProfileHeader,
   StreakCard,
-  ActivityHeatmap,
-  CourseProgressCard,
 } from "@/modules/gamification";
-import { Card, Button } from "@/shared/ui";
+import { getAuthSession } from "@/server/auth";
 import { ROUTES } from "@/shared/config";
-import { ProfileSettingsView } from "./ProfileSettingsView";
+import { Card } from "@/shared/ui";
 import {
   ArrowLeft,
-  CheckCircle2,
-  Trophy,
+  BarChart3,
   Brain,
-  BookOpen,
+  CheckCircle2,
   GraduationCap,
   Settings,
-  BarChart3,
+  Trophy,
 } from "lucide-react";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { ProfileSettingsView } from "./ProfileSettingsView";
 
 export const dynamic = "force-dynamic";
 
@@ -58,40 +57,6 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
   return (
     <main className="w-full min-h-screen bg-surface-canvas text-text-primary flex flex-col">
-      {/* Sticky Top Navigation Bar */}
-      <header className="w-full border-b border-border-subtle bg-surface-canvas/80 backdrop-blur-md sticky top-0 z-30 px-4 sm:px-8 py-3.5">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link
-              href={ROUTES.COURSES}
-              className="p-1.5 rounded-md hover:bg-surface-elevated text-text-muted hover:text-text-primary transition-colors cursor-pointer"
-              title="К каталогу курсов"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-
-            <div className="flex items-center gap-2">
-              <GraduationCap className="w-5 h-5 text-status-available" />
-              <h1 className="text-sm sm:text-base font-semibold text-text-primary">
-                Личный кабинет
-              </h1>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Link href={ROUTES.PRACTICE}>
-              <Button size="sm" variant="ghost" leftIcon={<Brain className="w-4 h-4" />}>
-                Тренажер
-              </Button>
-            </Link>
-            <Link href={ROUTES.COURSES}>
-              <Button size="sm" variant="secondary" leftIcon={<BookOpen className="w-4 h-4" />}>
-                Курсы
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
 
       {/* Main Content Area */}
       <div className="w-full max-w-6xl mx-auto flex-1 p-4 sm:p-8 flex flex-col gap-6">
@@ -125,10 +90,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
         {/* Tab Content */}
         {isSettingsTab ? (
           <div className="pt-2">
-            <ProfileSettingsView
-              initialName={user.name}
-              email={user.email}
-            />
+            <ProfileSettingsView initialName={user.name} email={user.email} />
           </div>
         ) : (
           <div className="flex flex-col gap-6">
@@ -153,7 +115,10 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
                ================================================================= */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* Completed Topics */}
-              <Card variant="default" className="p-5 flex flex-row items-center gap-4">
+              <Card
+                variant="default"
+                className="p-5 flex flex-row items-center gap-4"
+              >
                 <div className="w-12 h-12 rounded-xl bg-status-completed/10 border border-status-completed/30 flex items-center justify-center text-status-completed shrink-0">
                   <CheckCircle2 className="w-6 h-6" />
                 </div>
@@ -171,7 +136,10 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
               </Card>
 
               {/* Passed Quizzes */}
-              <Card variant="default" className="p-5 flex flex-row items-center gap-4">
+              <Card
+                variant="default"
+                className="p-5 flex flex-row items-center gap-4"
+              >
                 <div className="w-12 h-12 rounded-xl bg-status-progress/10 border border-status-progress/30 flex items-center justify-center text-status-progress shrink-0">
                   <Trophy className="w-6 h-6" />
                 </div>
@@ -189,7 +157,10 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
               </Card>
 
               {/* Reviewed Flashcards */}
-              <Card variant="default" className="p-5 flex flex-row items-center gap-4">
+              <Card
+                variant="default"
+                className="p-5 flex flex-row items-center gap-4"
+              >
                 <div className="w-12 h-12 rounded-xl bg-status-available/10 border border-status-available/30 flex items-center justify-center text-status-available shrink-0">
                   <Brain className="w-6 h-6" />
                 </div>

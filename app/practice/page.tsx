@@ -1,16 +1,10 @@
-import { redirect } from "next/navigation";
-import Link from "next/link";
-import { getAuthSession } from "@/server/auth";
 import { getDueFlashcards, PracticeDeck } from "@/modules/spaced-repetition";
-import { Card, Button, Badge } from "@/shared/ui";
+import { getAuthSession } from "@/server/auth";
 import { ROUTES } from "@/shared/config";
-import {
-  Sparkles,
-  BookOpen,
-  ArrowLeft,
-  GraduationCap,
-  CalendarCheck2,
-} from "lucide-react";
+import { Badge, Button, Card } from "@/shared/ui";
+import { BookOpen, CalendarCheck2 } from "lucide-react";
+import Link from "next/link";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +13,6 @@ export const metadata = {
   description:
     "Тренажер интервальных повторений SuperMemo-2 для долгосрочного закрепления знаний.",
 };
-
 
 interface PracticePageProps {
   searchParams?: Promise<{
@@ -45,39 +38,6 @@ export default async function PracticePage({
 
   return (
     <main className="w-full min-h-screen bg-surface-canvas text-text-primary flex flex-col items-center">
-      {/* Top Navigation Bar */}
-      <header className="w-full border-b border-border-subtle bg-surface-canvas/80 backdrop-blur-md sticky top-0 z-30 px-6 py-4">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link
-              href={ROUTES.COURSES}
-              className="p-1.5 rounded-md hover:bg-surface-elevated text-text-muted hover:text-text-primary transition-colors cursor-pointer"
-              title="Назад к курсам"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-
-            <div className="flex items-center gap-2">
-              <GraduationCap className="w-5 h-5 text-status-available" />
-              <h1 className="text-sm sm:text-base font-semibold text-text-primary">
-                Интервальное повторение
-              </h1>
-              <Badge size="sm" variant="available">
-                SM-2
-              </Badge>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Link href={ROUTES.COURSES}>
-              <Button size="sm" variant="ghost">
-                Курсы
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
-
       {/* Main Content Area */}
       <div className="w-full max-w-4xl flex-1 flex flex-col items-center justify-center p-4 sm:p-8">
         {dueCards.length === 0 ? (
@@ -98,7 +58,8 @@ export default async function PracticePage({
                 Все карточки на сегодня повторены!
               </h2>
               <p className="text-sm text-text-secondary leading-relaxed mb-6">
-                Завершайте новые темы в каталоге, чтобы добавлять новые карточки в колоду.
+                Завершайте новые темы в каталоге, чтобы добавлять новые карточки
+                в колоду.
               </p>
 
               <div className="flex flex-col gap-2.5 w-full">
